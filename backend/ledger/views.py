@@ -546,6 +546,13 @@ def normalize_jewel_entries(raw_entries):
             amount * MONTHLY_INTEREST_RATE / Decimal("100")
         ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP)
 
+        paid_amount = sum(
+            Decimal(item["amount"]) for item in normalized_closures
+        ).quantize(MONEY_QUANTIZER, rounding=ROUND_HALF_UP) if normalized_closures else Decimal("0.00")
+        pending_amount = max(amount - paid_amount, Decimal("0.00")).quantize(
+            MONEY_QUANTIZER, rounding=ROUND_HALF_UP
+        )
+
         normalized_entries.append(
             {
                 "id": str(raw_entry.get("id") or uuid4()),
@@ -553,6 +560,8 @@ def normalize_jewel_entries(raw_entries):
                 "date": transaction_date.isoformat(),
                 "interest_rate": format_currency_amount(MONTHLY_INTEREST_RATE),
                 "monthly_interest": format_currency_amount(monthly_interest),
+                "paid_amount": format_currency_amount(paid_amount),
+                "pending_amount": format_currency_amount(pending_amount),
                 "tenure_months": int(raw_entry.get("tenure_months") or DEFAULT_TENURE_MONTHS),
                 "visible_months": visible_months,
                 "closures": sorted(normalized_closures, key=lambda closure: closure["month"]),
