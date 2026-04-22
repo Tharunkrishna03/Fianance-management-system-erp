@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  color-scheme: light;
+  font-family: 'Inter', "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  font-size: 14px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  color: #0f172a;
+  background: #f4f9fd;
+  line-height: 1.5;
+  overflow-x: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.Toastify__toast {
+  border-radius: 16px;
+  font-size: 13px;
+  min-height: 56px;
+}
+
+.Toastify__toast-body {
+  line-height: 1.5;
+}
+
+.Toastify__progress-bar {
+  height: 3px;
+}
+
+[data-theme='babypink'] body {
+  filter: hue-rotate(130deg);
+  background: #fdf2f8 !important;
+}
+
+[data-theme='babypink'] img,
+[data-theme='babypink'] [style*='background-image'] {
+  filter: hue-rotate(-130deg);
+}
+
+.listButton, .backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: .5rem 1rem;
+  border-radius: 10rem;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: .8rem;
+  letter-spacing: .15rem;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.listButton::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0cf;
+  border-radius: 10rem;
+  z-index: -2;
+}
+
+.listButton::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background-color: #0099cc;
+  transition: all .3s;
+  border-radius: 10rem;
+  z-index: -1;
+}
+
+.listButton:hover, .backButton:hover {
+  color: #fff;
+}
+
+.listButton:hover::before, .backButton:hover::before {
+  width: 100%;
+}
+
+.listButton svg, .backButton svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.backButton::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f97316;
+  border-radius: 10rem;
+  z-index: -2;
+}
+
+.backButton::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background-color: #ea580c;
+  transition: all .3s;
+  border-radius: 10rem;
+  z-index: -1;
+}

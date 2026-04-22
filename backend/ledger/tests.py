@@ -70,6 +70,24 @@ def build_customer_payload(**overrides):
 
 
 class LoginViewTests(TestCase):
+    @override_settings(DEBUG=True)
+    def test_login_demo_accounts_are_available_in_debug(self):
+        response = self.client.get(reverse('login-demo'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], True)
+        self.assertEqual(
+            {account['username'] for account in response.json()['accounts']},
+            {'Tharunadmin', 'jeweladmin'},
+        )
+
+    @override_settings(DEBUG=False)
+    def test_login_demo_accounts_are_hidden_outside_debug(self):
+        response = self.client.get(reverse('login-demo'))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['success'], False)
+
     def test_login_succeeds_with_valid_credentials(self):
         response = self.client.post(
             reverse('login'),

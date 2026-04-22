@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     create_customer_view,
     customer_detail_view,
+    login_demo_accounts_view,
     login_view,
     profile_password_view,
     profile_photo_view,
@@ -12,6 +13,7 @@ from .views import (
 
 
 urlpatterns = [
+    path('login/demo/', login_demo_accounts_view, name='login-demo'),
     path('login/', login_view, name='login'),
     path('profile/', profile_view, name='profile'),
     path('profile/password/', profile_password_view, name='profile-password'),

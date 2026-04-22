@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import urlencode
 from uuid import uuid4
 
+from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
@@ -23,9 +24,47 @@ from .models import (
     WorkspaceSettings,
     render_sequence_value,
 )
+from .demo_accounts import DEMO_LOGIN_ACCOUNTS
 
 
 MONEY_QUANTIZER = Decimal("0.01")
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def login_demo_accounts_view(request):
+    if not settings.DEBUG:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Demo login credentials are only available in development.",
+            },
+            status=404,
+        )
+
+    user_model = get_user_model()
+    available_accounts = []
+
+    for account in DEMO_LOGIN_ACCOUNTS:
+        user = user_model.objects.filter(username__iexact=account["username"], is_active=True).first()
+
+        if user is None:
+            continue
+
+        available_accounts.append(
+            {
+                "label": account["label"],
+                "username": user.username,
+                "password": account["password"],
+            }
+        )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "accounts": available_accounts,
+        }
+    )
 
 
 @csrf_exempt

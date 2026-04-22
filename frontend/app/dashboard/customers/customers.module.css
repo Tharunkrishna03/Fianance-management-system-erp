@@ -1,0 +1,577 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+/* Loading States */
+.loadingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 24px;
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loadingText {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Main Form Card Wrapper */
+.parentCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.formCard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Sections */
+.sectionCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  padding: 28px 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sectionCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+.sectionHeader {
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sectionHeaderWithAction {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  padding: 8px 14px;
+  background-color: #f0f9ff;
+  border-left: 2px solid #0ea5e9;
+  border-bottom: 2px solid #1e293b;
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-block;
+  border-radius: 4px 4px 0 0;
+}
+
+.headerActions, .actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.headerActions {
+  justify-content: flex-end;
+}
+
+.actions {
+  justify-content: flex-start;
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+/* Grid Layouts - Using a fully responsive auto-fit grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px 24px;
+}
+
+/* Form Fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.requiredMark {
+  color: #ef4444;
+}
+
+/* Inputs, Selects, Textareas */
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  max-width: 260px;
+  min-height: 32px;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.multiSelectWrap {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chipRemove {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
+  cursor: pointer;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.chipRemove:hover {
+  background: rgba(59, 130, 246, 0.22);
+}
+
+.chipInputRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.chipInputRow input {
+  max-width: none;
+}
+
+.field textarea {
+  min-height: 80px;
+  max-width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* The requested 1px blue left border for required fields */
+.fieldRequired input,
+.fieldRequired select,
+.fieldRequired textarea {
+  border-left: 2px solid #3b82f6; /* Just slightly thick to be noticeable without looking broken */
+}
+
+/* Readonly and Disabled States */
+.field input[disabled],
+.field select[disabled],
+.field textarea[disabled],
+.field input[readonly] {
+  background: #f9fafb;
+  color: #6b7280;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Specialized input tweaks */
+.field input[type="file"] {
+  padding: 8px 12px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px dashed #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.field input[type="file"]:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.errorText {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.hint {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Buttons */
+.primaryButton,
+.secondaryButton,
+.listLink,
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.primaryButton {
+  background: #10b981; /* Emerald green - excellent UI standard */
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
+}
+
+.primaryButton:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);
+}
+
+.roundBlueButton,
+.roundOrangeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.roundBlueButton {
+  background: #3b82f6; /* Blue */
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+}
+
+.roundBlueButton:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);
+}
+
+.roundOrangeButton {
+  background: #f97316; /* Orange */
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.2);
+}
+
+.roundOrangeButton:hover {
+  background: #ea580c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(249, 115, 22, 0.25);
+}
+
+.secondaryButton {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.secondaryButton:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+}
+
+.listLink {
+  background: #1e3a8a;
+  color: #ffffff;
+  border: 1px solid #1e3a8a;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.listLink:hover {
+  background: #1e40af;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(30, 58, 138, 0.25);
+}
+
+.backLink {
+  background: #f59e0b;
+  color: #ffffff;
+  border: 1px solid #d97706;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.backLink:hover {
+  background: #d97706;
+  color: #ffffff;
+  border-color: #b45309;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(217, 119, 6, 0.25);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.primaryButton svg,
+.secondaryButton svg,
+.listLink svg,
+.backLink svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.roundBlueButton svg,
+.roundOrangeButton svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Status Messages */
+.status {
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.statusSuccess {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.statusError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Transaction Section Extras */
+.transactionActionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.transactionTableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  margin-top: 16px;
+}
+
+.transactionTable {
+  width: 100%;
+  min-width: auto;
+  border-collapse: collapse;
+}
+
+.transactionTable th {
+  background: #f8fafc;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid #475569;
+}
+
+.transactionTable td {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #1e293b;
+  border: 1px solid #475569;
+  vertical-align: middle;
+}
+
+.transactionTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.transactionTable tbody tr:hover {
+  background: #fbfccb; /* Very faint yellow-ish highlight on transaction hover or simple gray */
+  background: #f8fafc;
+}
+
+.centerHeader, .actionCell {
+  text-align: center;
+}
+
+.actionGroup {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.iconButton {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.iconButton svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.editButton {
+  color: #3b82f6;
+}
+
+.editButton:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.deleteButton {
+  color: #ef4444;
+}
+
+.deleteButton:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* Utilities */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .sectionCard {
+    padding: 20px;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .actions button {
+    width: 100%;
+  }
+}

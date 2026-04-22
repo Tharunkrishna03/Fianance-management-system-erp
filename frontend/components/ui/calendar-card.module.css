@@ -1,0 +1,208 @@
+.meetingCard {
+  background-color: transparent;
+  width: 100%;
+  min-width: 320px;
+  max-width: 380px;
+  padding: 8px;
+  color: #0f172a;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.dateSelector {
+  background-color: #f8fafc;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+  color: #0f172a;
+}
+
+.dateSelector:hover {
+  background-color: #f1f5f9;
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.dateSelector span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.callsInfo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  color: #0284c7;
+}
+
+.callsInfo span {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dateNavAndIndicators {
+  position: relative;
+}
+
+.dateNavContainer {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 12px 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  margin-bottom: 0px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+}
+
+.dateNavContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.dayItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  position: relative;
+  cursor: pointer;
+  scroll-snap-align: center;
+}
+
+.dayNumber,
+.dayName {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  background-color: transparent;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dayNumber {
+  font-size: 1.1rem;
+  font-weight: 700;
+  height: 28px;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding-top: 4px;
+  color: #1e293b;
+}
+
+.dayName {
+  font-size: 0.7rem;
+  font-weight: 600;
+  height: 20px;
+  color: #64748b;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  padding-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.dayItem:hover .dayNumber,
+.dayItem:hover .dayName {
+  background-color: #f1f5f9;
+}
+
+.dayActive .dayNumber,
+.dayActive .dayName {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.indicatorContainer {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  position: relative;
+  padding: 0 28px;
+  box-sizing: border-box;
+}
+
+.indicatorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+  position: relative;
+  z-index: 2;
+  transition: background-color 0.2s ease;
+}
+
+.indicatorActive {
+  background-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+}
+
+.indicatorLine {
+  position: absolute;
+  top: 50%;
+  left: 32px;
+  right: 32px;
+  height: 1px;
+  border-top: 1.5px dashed #cbd5e1;
+  z-index: 1;
+}
+
+@media screen and (max-width: 480px) {
+  .meetingCard {
+    min-width: 280px;
+    padding: 4px;
+  }
+
+  .title {
+    font-size: 1.1rem;
+  }
+
+  .dateSelector {
+    padding: 0.4rem 0.8rem;
+  }
+
+  .dateSelector span {
+    font-size: 0.8rem;
+  }
+
+  .dayNumber,
+  .dayName {
+    width: 32px;
+  }
+
+  .dayNumber {
+    font-size: 1rem;
+  }
+
+  .dayName {
+    font-size: 0.65rem;
+  }
+
+  .indicatorContainer {
+    padding: 0 24px;
+  }
+
+  .indicatorLine {
+    left: 28px;
+    right: 28px;
+  }
+}
