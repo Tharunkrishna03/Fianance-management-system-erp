@@ -11,6 +11,10 @@
   --sidebar-width: 96px;
 }
 
+.shellMobileExpanded {
+  --sidebar-width: 225px;
+}
+
 .mainColumn {
   margin-left: var(--sidebar-width);
   height: 100vh;
@@ -1031,14 +1035,14 @@
 }
 
 @media (max-width: 860px) {
-  .mainColumn {
-    margin-left: 0;
+  .shell {
+    --sidebar-width: 88px;
   }
 
   .sidebarOverlay {
     display: block;
     position: fixed;
-    inset: 56px 0 48px;
+    inset: 56px 0 0;
     border: 0;
     padding: 0;
     background: rgba(29, 21, 11, 0.28);
@@ -1055,13 +1059,13 @@
 
   .sidebar {
     top: 56px;
-    bottom: 48px;
+    bottom: 0;
     min-height: 0;
     width: 88px;
     padding: 14px 8px;
-    transform: translateX(-110%);
+    transform: translateX(0);
     transition:
-      transform 0.24s ease,
+      width 0.24s ease,
       box-shadow 0.24s ease;
     box-shadow: 0 18px 34px rgba(35, 25, 10, 0.2);
     z-index: 2700;
@@ -1072,7 +1076,7 @@
   }
 
   .sidebarOpen {
-    transform: translateX(0);
+    width: 225px;
   }
 
   .brandPanel {
@@ -1114,6 +1118,10 @@
     display: none;
   }
 
+  .sidebarOpen .navCopy {
+    display: grid;
+  }
+
   .navSubmenu {
     padding-left: 0;
     justify-items: center;
@@ -1138,6 +1146,41 @@
 
   .navSubmenuLabel {
     display: none;
+  }
+
+  .sidebarOpen .navMenuWrap {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .sidebarOpen .navItem,
+  .sidebarOpen .logoutButton {
+    width: 100%;
+    grid-template-columns: 36px 1fr;
+    justify-items: stretch;
+    align-content: center;
+    min-height: 0;
+    padding: 7px 8px;
+    gap: 12px;
+    text-align: left;
+    border-radius: 6px;
+  }
+
+  .sidebarOpen .navSubmenu {
+    padding-left: 48px;
+    justify-items: stretch;
+  }
+
+  .sidebarOpen .navSubmenuItem {
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 40px;
+    padding: 9px 12px;
+    border-radius: 12px;
+  }
+
+  .sidebarOpen .navSubmenuLabel {
+    display: block;
   }
 
   .logoutButton {

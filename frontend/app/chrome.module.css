@@ -5,7 +5,6 @@
 }
 
 .header {
-  --dashboard-sidebar-width: 225px;
   --dashboard-header-height: 56px;
   
   background: #f2f2f2;
@@ -13,8 +12,8 @@
   backdrop-filter: blur(10px);
   position: fixed;
   top: 0;
-  left: var(--dashboard-sidebar-width);
-  width: calc(100% - var(--dashboard-sidebar-width));
+  left: 0;
+  width: 100vw;
   min-height: var(--dashboard-header-height);
   box-sizing: border-box;
   z-index: 3000;
@@ -30,7 +29,7 @@
 .panelHeaderInner,
 .panelFooterInner {
   width: 100%;
-  padding: 0 18px;
+  padding: 0 18px 0 calc(var(--sidebar-width, 0px) + 18px);
   box-sizing: border-box;
 }
 
@@ -401,18 +400,18 @@
   position: relative;
   z-index: 1;
   padding-top: var(--dashboard-header-height, 56px);
-  padding-bottom: var(--dashboard-footer-height, 48px);
+  padding-bottom: 0;
 }
 
 .footer {
-  --dashboard-sidebar-width: 222px;
   --dashboard-footer-height: 48px;
  
   background: #f2f2f2;
-  position: fixed;
-  bottom: 0;
-  left: var(--dashboard-sidebar-width);
-  width: calc(100% - var(--dashboard-sidebar-width));
+  position: relative;
+  left: auto;
+  bottom: auto;
+  width: 100vw;
+  margin-left: calc(var(--sidebar-width, 0px) * -1);
   min-height: var(--dashboard-footer-height);
   box-sizing: border-box;
   z-index: 2990;
@@ -547,8 +546,8 @@
 @media (max-width: 860px) {
   .header,
   .footer {
-    left: 0;
-    width: 100%;
+    width: 100vw;
+    margin-left: 0;
   }
 }
 
@@ -560,7 +559,7 @@
 
   .panelHeaderInner,
   .panelFooterInner {
-    padding: 0 12px;
+    padding: 0 12px 0 calc(var(--sidebar-width, 0px) + 12px);
   }
 
   .title {

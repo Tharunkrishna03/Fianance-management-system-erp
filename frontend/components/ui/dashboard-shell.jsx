@@ -226,6 +226,25 @@ function DashboardShellFrame({ children, items }) {
   const displayName = profile?.display_name || "Tharuns";
   const avatarInitial = (profile?.avatar_initial || displayName.slice(0, 1) || "T").toUpperCase();
   const isSidebarExpanded = isDesktopViewport ? !isSidebarCollapsed : isSidebarOpen;
+  const isSidebarIconMode = isDesktopViewport ? isSidebarCollapsed : !isSidebarOpen;
+
+  function expandSidebarFromIconMode() {
+    if (isDesktopViewport) {
+      if (!isSidebarCollapsed) {
+        return false;
+      }
+
+      setIsSidebarCollapsed(false);
+      return true;
+    }
+
+    if (isSidebarOpen) {
+      return false;
+    }
+
+    setIsSidebarOpen(true);
+    return true;
+  }
 
   function handleToggleSidebar() {
     setIsProfileMenuOpen(false);
@@ -420,7 +439,11 @@ function DashboardShellFrame({ children, items }) {
   }, [isSidebarOpen]);
 
   return (
-    <div className={`${styles.shell} ${isDesktopViewport && isSidebarCollapsed ? styles.shellCollapsed : ""}`}>
+    <div
+      className={`${styles.shell} ${
+        isDesktopViewport && isSidebarCollapsed ? styles.shellCollapsed : ""
+      } ${!isDesktopViewport && isSidebarOpen ? styles.shellMobileExpanded : ""}`}
+    >
       <button
         aria-label="Close sidebar"
         className={`${styles.sidebarOverlay} ${isSidebarOpen ? styles.sidebarOverlayVisible : ""}`}
@@ -441,12 +464,10 @@ function DashboardShellFrame({ children, items }) {
 
         <SidebarNav
           collapsed={isDesktopViewport && isSidebarCollapsed}
+          iconOnly={isSidebarIconMode}
           items={items}
-          onNavigate={() => {
-            if (!isDesktopViewport) {
-              setIsSidebarOpen(false);
-            }
-          }}
+          onNavigate={() => {}}
+          onRequestExpand={expandSidebarFromIconMode}
         />
       </aside>
 

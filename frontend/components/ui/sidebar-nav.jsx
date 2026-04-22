@@ -148,7 +148,13 @@ function isActivePath(pathname, href) {
   return pathname.startsWith(href);
 }
 
-export default function SidebarNav({ items, onNavigate, collapsed = false }) {
+export default function SidebarNav({
+  items,
+  onNavigate,
+  collapsed = false,
+  iconOnly = false,
+  onRequestExpand,
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -194,11 +200,19 @@ export default function SidebarNav({ items, onNavigate, collapsed = false }) {
   }
 
   function handleToggleCustomer() {
+    if (iconOnly && onRequestExpand?.()) {
+      return;
+    }
+
     setIsCustomerDropdownOpen((current) => !current);
     setIsCollectionDropdownOpen(false);
   }
 
   function handleToggleCollection() {
+    if (iconOnly && onRequestExpand?.()) {
+      return;
+    }
+
     setIsCollectionDropdownOpen((current) => !current);
     setIsCustomerDropdownOpen(false);
   }
@@ -256,7 +270,7 @@ export default function SidebarNav({ items, onNavigate, collapsed = false }) {
                           }`}
                           href={link.href}
                           key={link.id}
-                          onClick={onNavigate}
+                          onClick={() => onNavigate?.()}
                           title={link.label}
                         >
                           <span className={styles.navSubmenuIcon}>
@@ -314,7 +328,7 @@ export default function SidebarNav({ items, onNavigate, collapsed = false }) {
                           }`}
                           href={link.href}
                           key={link.id}
-                          onClick={onNavigate}
+                          onClick={() => onNavigate?.()}
                           title={link.label}
                         >
                           <span className={styles.navSubmenuIcon}>
@@ -337,7 +351,14 @@ export default function SidebarNav({ items, onNavigate, collapsed = false }) {
               className={`${styles.navItem} ${active ? styles.navItemActive : ""}`}
               href={item.href}
               key={item.href}
-              onClick={onNavigate}
+              onClick={(event) => {
+                if (iconOnly && onRequestExpand?.()) {
+                  event.preventDefault();
+                  return;
+                }
+
+                onNavigate?.();
+              }}
               title={item.navLabel}
             >
               <span className={styles.navTag}>
@@ -359,7 +380,13 @@ export default function SidebarNav({ items, onNavigate, collapsed = false }) {
         aria-label="Logout"
         className={`${styles.navItem} ${styles.logoutButton}`}
         disabled={isLoggingOut}
-        onClick={handleLogout}
+        onClick={() => {
+          if (iconOnly && onRequestExpand?.()) {
+            return;
+          }
+
+          handleLogout();
+        }}
         title="Logout"
         type="button"
       >
