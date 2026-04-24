@@ -549,10 +549,7 @@ export default function DashboardCollectionPage() {
       <div className={styles.hero}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Collection</p>
-          <h1 className={styles.title}>Collected amounts</h1>
-          <p className={styles.description}>
-            Payments from transaction closures. Filter, export, or edit records in line with your ledger.
-          </p>
+         
         </div>
 
         <div className={styles.heroActions}>

@@ -444,6 +444,25 @@
   line-height: 1.4;
 }
 
+.footerText {
+  min-height: var(--dashboard-footer-height, 48px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 0 18px;
+  box-sizing: border-box;
+}
+
+.footerText p {
+  margin: 0;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 
 @keyframes headerBellRing {
   0%,
@@ -572,13 +591,18 @@
     padding: 0 12px;
   }
 
+  .footerText {
+    padding: 0 12px;
+  }
+
   .title {
     font-size: 14px;
   }
 
   .meta,
   .footerInner p,
-  .panelFooterInner p {
+  .panelFooterInner p,
+  .footerText p {
     font-size: 11px;
   }
 

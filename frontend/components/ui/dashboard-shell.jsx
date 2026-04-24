@@ -648,12 +648,10 @@ function DashboardShellFrame({ children, items }) {
           <Suspense fallback={null}>{children}</Suspense>
         </main>
 
-        <footer className={chromeStyles.footer}>
-          <div className={chromeStyles.panelFooterInner}>
-            <p>Product of TK Infotechsoft</p>
-            <p>Copyright &copy; {new Date().getFullYear()} TK Infotechsoft. All rights reserved.</p>
-          </div>
-        </footer>
+        <div className={chromeStyles.footerText}>
+          <p>Product of TK Infotechsoft</p>
+          <p>Copyright &copy; {new Date().getFullYear()} TK Infotechsoft. All rights reserved.</p>
+        </div>
       </div>
 
       {isCalcOpen && (

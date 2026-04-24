@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { notify } from "../../notifier";
@@ -36,43 +35,56 @@ function BackIcon() {
   );
 }
 
-function OpenIcon() {
-  return (
-    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-    </svg>
-  );
-}
-
 function CollectionsContent() {
   const searchParams = useSearchParams();
   const viewMode = searchParams?.get("view");
   const router = useRouter();
 
   const [customers, setCustomers] = useState([]);
-  const [status, setStatus] = useState("loading");
-  const [message, setMessage] = useState("Loading collections...");
   const [searchTerm, setSearchTerm] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
+    let active = true;
+    const toastId = notify.loading("Loading collections...", {
+      toastId: "collections-page-status",
+    });
+
     fetch("/api/customers", { cache: "no-store" })
       .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
       .then(({ ok, data }) => {
+        if (!active) {
+          return;
+        }
+
         if (!ok || !data?.success) {
           throw new Error(data?.message ?? "Unable to load collections.");
         }
+
         setCustomers(data.customers ?? []);
-        setStatus("success");
-        setMessage(data.customers?.length ? "Collections loaded successfully." : "No collections available yet.");
+        notify.update(toastId, {
+          render: data.customers?.length
+            ? "Collections loaded successfully."
+            : "No collections available yet.",
+          type: "success",
+        });
       })
       .catch((error) => {
-        setStatus("error");
-        setMessage(error.message || "Unable to load collections.");
-        notify.error(error.message || "Unable to load collections.");
+        if (!active) {
+          return;
+        }
+
+        notify.update(toastId, {
+          render: error.message || "Unable to load collections.",
+          type: "error",
+        });
       });
+
+    return () => {
+      active = false;
+      notify.dismiss(toastId);
+    };
   }, []);
 
   const todayString = useMemo(() => {
@@ -193,18 +205,13 @@ function CollectionsContent() {
                 ? "This Month's Collections" 
                 : "Overall Collections"}
           </h1>
-          <p className={styles.description}>Browse individual payment collections recorded across all customers.</p>
-        </div>
+          </div>
         <div className={styles.heroActions}>
           <BackButton className="backButton" fallbackHref="/dashboard">
             <BackIcon />
             <span>Back</span>
           </BackButton>
         </div>
-      </div>
-
-      <div className={`${styles.statusCard} ${status === "error" ? styles.statusError : status === "success" ? styles.statusSuccess : ""}`}>
-        {message}
       </div>
 
       <div className={styles.panel}>

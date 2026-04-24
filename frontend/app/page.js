@@ -7,6 +7,7 @@ import { Tilt, TiltContent } from "@/components/animate-ui/primitives/effects/ti
 import { MagicCard } from "@/components/magicui/magic-card";
 
 import styles from "./page.module.css";
+import { notify } from "./notifier";
 import { Button, Input, SubmitButton } from "../components";
 
 const initialForm = {
@@ -51,8 +52,6 @@ export default function Home() {
   const router = useRouter();
   const [formData, setFormData] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [demoAccounts, setDemoAccounts] = useState([]);
   const [demoStatus, setDemoStatus] = useState("loading");
@@ -118,8 +117,6 @@ export default function Home() {
 
     setFormData(initialForm);
     setErrors({});
-    setMessage("");
-    setStatus("idle");
     setShowConfetti(false);
   };
 
@@ -132,15 +129,14 @@ export default function Home() {
 
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
-      setStatus("error");
-      setMessage("Please fill the required fields.");
+      notify.error("Please fill the required fields.", {
+        toastId: "login-validation",
+      });
       setShowConfetti(false);
       return;
     }
 
     setIsSubmitting(true);
-    setMessage("");
-    setStatus("idle");
     setShowConfetti(false);
 
     try {
@@ -151,9 +147,18 @@ export default function Home() {
       });
 
       const data = await response.json();
+      const nextMessage =
+        data.message ?? (data.success ? "Login successful." : "Unable to log in.");
 
-      setMessage(data.message ?? (data.success ? "Login successful." : "Unable to log in."));
-      setStatus(data.success ? "success" : "error");
+      if (data.success) {
+        notify.success(nextMessage, {
+          toastId: "login-status",
+        });
+      } else {
+        notify.error(nextMessage, {
+          toastId: "login-status",
+        });
+      }
 
       if (data.success) {
         setShowConfetti(true);
@@ -166,8 +171,9 @@ export default function Home() {
         }, 950);
       }
     } catch {
-      setMessage("Something went wrong while contacting the server.");
-      setStatus("error");
+      notify.error("Something went wrong while contacting the server.", {
+        toastId: "login-status",
+      });
       setShowConfetti(false);
     } finally {
       setIsSubmitting(false);
