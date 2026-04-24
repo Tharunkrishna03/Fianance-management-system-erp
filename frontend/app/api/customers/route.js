@@ -1,32 +1,33 @@
 import { NextResponse } from "next/server";
+import {
+  BACKEND_URL,
+  buildAuthErrorResponse,
+  buildBackendHeaders,
+  buildUnavailableResponse,
+  parseBackendJson,
+  syncBackendAuthCookies,
+} from "@/lib/backend-auth";
 
-const BACKEND_URL = process.env.DJANGO_API_URL ?? "http://127.0.0.1:8000";
+export async function GET(request) {
+  const backendHeaders = await buildBackendHeaders(request);
 
-async function parseBackendJson(response) {
-  return response.json().catch(() => ({
-    success: false,
-    message: "Customer service returned an invalid response.",
-  }));
-}
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
 
-export async function GET() {
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/api/customers/`, {
       method: "GET",
+      headers: backendHeaders,
       cache: "no-store",
     });
 
-    const data = await parseBackendJson(backendResponse);
+    const data = await parseBackendJson(backendResponse, "Customer service returned an invalid response.");
 
-    return NextResponse.json(data, { status: backendResponse.status });
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Unable to reach the backend customer service.",
-      },
-      { status: 503 },
-    );
+    return buildUnavailableResponse("Unable to reach the backend customer service.");
   }
 }
 
@@ -51,23 +52,25 @@ export async function POST(request) {
     backendFormData.append(key, value);
   }
 
+  const backendHeaders = await buildBackendHeaders(request, {}, { includeCsrf: true });
+
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
+
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/api/customers/`, {
       method: "POST",
+      headers: backendHeaders,
       body: backendFormData,
       cache: "no-store",
     });
 
-    const data = await parseBackendJson(backendResponse);
+    const data = await parseBackendJson(backendResponse, "Customer service returned an invalid response.");
 
-    return NextResponse.json(data, { status: backendResponse.status });
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Unable to reach the backend customer service.",
-      },
-      { status: 503 },
-    );
+    return buildUnavailableResponse("Unable to reach the backend customer service.");
   }
 }

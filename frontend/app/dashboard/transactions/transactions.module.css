@@ -12,7 +12,7 @@
   align-items: flex-start;
   gap: 16px;
   padding: 20px 22px;
-  border-radius: 24px;
+  
   background:
     #ffffff;
   border: 1px solid #e5e7eb;
@@ -119,12 +119,21 @@
   display: grid;
   gap: 16px;
   padding: 18px;
-  border-radius: 22px;
+  
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.18);
+  
 }
-
+.panel:hover {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  
+  background: #ffffff;
+  border: 1px solid #727272;
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.1);
+  
+}
 .filterBar {
   display: grid;
   grid-template-columns: minmax(280px, 1.6fr) repeat(2, minmax(170px, 0.7fr));

@@ -2,9 +2,11 @@ import shutil
 from datetime import date
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -70,7 +72,10 @@ def build_customer_payload(**overrides):
 
 
 class LoginViewTests(TestCase):
-    @override_settings(DEBUG=True)
+    def setUp(self):
+        cache.clear()
+
+    @override_settings(ENABLE_DEMO_ACCOUNTS=True)
     def test_login_demo_accounts_are_available_in_debug(self):
         response = self.client.get(reverse('login-demo'))
 
@@ -78,10 +83,10 @@ class LoginViewTests(TestCase):
         self.assertEqual(response.json()['success'], True)
         self.assertEqual(
             {account['username'] for account in response.json()['accounts']},
-            {'Tharunadmin', 'jeweladmin'},
+            {'tharun', 'jeweladmin'},
         )
 
-    @override_settings(DEBUG=False)
+    @override_settings(ENABLE_DEMO_ACCOUNTS=False)
     def test_login_demo_accounts_are_hidden_outside_debug(self):
         response = self.client.get(reverse('login-demo'))
 
@@ -91,17 +96,19 @@ class LoginViewTests(TestCase):
     def test_login_succeeds_with_valid_credentials(self):
         response = self.client.post(
             reverse('login'),
-            data='{"username":"Tharunadmin","password":"Tharun@123"}',
+            data='{"username":"tharun","password":"123"}',
             content_type='application/json',
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
+        self.assertEqual(str(self.client.session.get('_auth_user_id')), str(get_user_model().objects.get(username='tharun').pk))
+        self.assertIn(settings.CSRF_COOKIE_NAME, response.cookies)
 
     def test_login_succeeds_with_case_insensitive_username(self):
         response = self.client.post(
             reverse('login'),
-            data='{"username":"tharunadmin","password":"Tharun@123"}',
+            data='{"username":"THARUN","password":"123"}',
             content_type='application/json',
         )
 
@@ -118,6 +125,34 @@ class LoginViewTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()['success'], False)
 
+    @override_settings(ENABLE_DEMO_ACCOUNTS=False)
+    def test_login_still_succeeds_when_demo_endpoint_is_disabled(self):
+        response = self.client.post(
+            reverse('login'),
+            data='{"username":"tharun","password":"123"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], True)
+
+    @override_settings(LOGIN_RATE_LIMIT_ATTEMPTS=1, LOGIN_RATE_LIMIT_WINDOW_SECONDS=300)
+    def test_login_rate_limits_repeated_failures(self):
+        first_response = self.client.post(
+            reverse('login'),
+            data='{"username":"jeweladmin","password":"wrong-password"}',
+            content_type='application/json',
+        )
+        second_response = self.client.post(
+            reverse('login'),
+            data='{"username":"jeweladmin","password":"wrong-password"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(first_response.status_code, 401)
+        self.assertEqual(second_response.status_code, 429)
+        self.assertEqual(second_response.json()['success'], False)
+
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ProfileViewTests(TestCase):
@@ -127,24 +162,25 @@ class ProfileViewTests(TestCase):
         shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
-        self.user = get_user_model().objects.get(username='Tharunadmin')
-        self.profile_headers = {
-            'HTTP_X_AUTHENTICATED_USERNAME': self.user.username,
-        }
+        self.user = get_user_model().objects.get(username='tharun')
+        self.client.post(
+            reverse('login'),
+            data='{"username":"tharun","password":"123"}',
+            content_type='application/json',
+        )
 
     def test_profile_get_returns_authenticated_user_profile(self):
-        response = self.client.get(reverse('profile'), **self.profile_headers)
+        response = self.client.get(reverse('profile'))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
-        self.assertEqual(response.json()['profile']['username'], 'Tharunadmin')
+        self.assertEqual(response.json()['profile']['username'], 'tharun')
 
     def test_profile_update_changes_display_name(self):
         response = self.client.post(
             reverse('profile'),
             data='{"display_name":"Finance Admin"}',
             content_type='application/json',
-            **self.profile_headers,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -157,7 +193,6 @@ class ProfileViewTests(TestCase):
             reverse('profile-password'),
             data='{"current_password":"wrong","new_password":"NewStrong@123","confirm_password":"NewStrong@123"}',
             content_type='application/json',
-            **self.profile_headers,
         )
 
         self.assertEqual(response.status_code, 400)
@@ -167,15 +202,16 @@ class ProfileViewTests(TestCase):
     def test_profile_password_change_updates_saved_password(self):
         response = self.client.post(
             reverse('profile-password'),
-            data='{"current_password":"Tharun@123","new_password":"NewStrong@123","confirm_password":"NewStrong@123"}',
+            data='{"current_password":"123","new_password":"NewStrong@123","confirm_password":"NewStrong@123"}',
             content_type='application/json',
-            **self.profile_headers,
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('NewStrong@123'))
+        follow_up_response = self.client.get(reverse('profile'))
+        self.assertEqual(follow_up_response.status_code, 200)
 
     def test_profile_photo_update_saves_photo(self):
         response = self.client.post(
@@ -187,13 +223,49 @@ class ProfileViewTests(TestCase):
                     content_type='image/jpeg',
                 )
             },
-            **self.profile_headers,
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
         self.assertIn('/media/profiles/photos/', response.json()['profile']['photo_url'])
         self.assertTrue(UserProfile.objects.filter(user=self.user).exists())
+
+    def test_profile_requires_authenticated_session(self):
+        anonymous_client = Client()
+        response = anonymous_client.get(reverse('profile'))
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['success'], False)
+
+    def test_profile_post_rejects_missing_csrf_token_when_enforced(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        login_response = csrf_client.post(
+            reverse('login'),
+            data='{"username":"tharun","password":"123"}',
+            content_type='application/json',
+        )
+        self.assertEqual(login_response.status_code, 200)
+        csrf_token = csrf_client.cookies[settings.CSRF_COOKIE_NAME].value
+
+        response = csrf_client.post(
+            reverse('profile'),
+            data='{"display_name":"Finance Admin"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        response_with_csrf = csrf_client.post(
+            reverse('profile'),
+            data='{"display_name":"Finance Admin"}',
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN=csrf_token,
+            HTTP_ORIGIN='http://localhost:3000',
+            HTTP_REFERER='http://localhost:3000/dashboard/profile',
+        )
+
+        self.assertEqual(response_with_csrf.status_code, 200)
+        self.assertEqual(response_with_csrf.json()['success'], True)
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
@@ -202,6 +274,13 @@ class CustomerCreateViewTests(TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
         shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        self.client.post(
+            reverse('login'),
+            data='{"username":"tharun","password":"123"}',
+            content_type='application/json',
+        )
 
     def test_customer_create_succeeds_with_valid_payload(self):
         response = self.client.post(reverse('create-customer'), data=build_customer_payload())
@@ -297,3 +376,10 @@ class CustomerCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
         self.assertEqual(Customer.objects.count(), 0)
+
+    def test_customer_endpoints_require_authenticated_session(self):
+        anonymous_client = Client()
+        response = anonymous_client.get(reverse('create-customer'))
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['success'], False)

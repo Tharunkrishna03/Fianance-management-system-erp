@@ -2,40 +2,35 @@ import { NextResponse } from "next/server";
 import {
   BACKEND_URL,
   buildAuthErrorResponse,
-  buildAuthHeaders,
+  buildBackendHeaders,
   buildUnavailableResponse,
-  getAuthenticatedUsername,
   parseBackendJson,
+  syncBackendAuthCookies,
 } from "./profile-api";
 
-export async function GET() {
-  const username = await getAuthenticatedUsername();
+export async function GET(request) {
+  const backendHeaders = await buildBackendHeaders(request);
 
-  if (!username) {
+  if (!backendHeaders) {
     return buildAuthErrorResponse();
   }
 
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/api/profile/`, {
       method: "GET",
-      headers: buildAuthHeaders(username),
+      headers: backendHeaders,
       cache: "no-store",
     });
 
     const data = await parseBackendJson(backendResponse, "Profile service returned an invalid response.");
-    return NextResponse.json(data, { status: backendResponse.status });
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
     return buildUnavailableResponse("Unable to reach the backend profile service.");
   }
 }
 
 export async function POST(request) {
-  const username = await getAuthenticatedUsername();
-
-  if (!username) {
-    return buildAuthErrorResponse();
-  }
-
   let payload;
 
   try {
@@ -50,18 +45,27 @@ export async function POST(request) {
     );
   }
 
+  const backendHeaders = await buildBackendHeaders(
+    request,
+    { "Content-Type": "application/json" },
+    { includeCsrf: true },
+  );
+
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
+
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/api/profile/`, {
       method: "POST",
-      headers: buildAuthHeaders(username, {
-        "Content-Type": "application/json",
-      }),
+      headers: backendHeaders,
       body: JSON.stringify(payload),
       cache: "no-store",
     });
 
     const data = await parseBackendJson(backendResponse, "Profile service returned an invalid response.");
-    return NextResponse.json(data, { status: backendResponse.status });
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
     return buildUnavailableResponse("Unable to reach the backend profile service.");
   }

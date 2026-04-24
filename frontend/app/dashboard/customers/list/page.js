@@ -279,8 +279,7 @@ export default function DashboardCustomerListPage() {
       <div className={styles.hero}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Customer List</p>
-          <h1 className={styles.title}>Saved customer records</h1>
-          <p className={styles.description}>Browse customers with search, month filter, and quick links to transactions or edit.</p>
+          
         </div>
 
         <div className={styles.heroActions}>
@@ -290,7 +289,7 @@ export default function DashboardCustomerListPage() {
           </BackButton>
           <Link className={styles.addButton} href="/dashboard/customers" title="Create a new customer">
             <PlusIcon />
-            <span>Add Customer</span>
+            <span>Add</span>
           </Link>
         </div>
       </div>

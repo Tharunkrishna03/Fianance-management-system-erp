@@ -226,7 +226,7 @@ function DashboardShellFrame({ children, items }) {
   const displayName = profile?.display_name || "Tharuns";
   const avatarInitial = (profile?.avatar_initial || displayName.slice(0, 1) || "T").toUpperCase();
   const isSidebarExpanded = isDesktopViewport ? !isSidebarCollapsed : isSidebarOpen;
-  const isSidebarIconMode = isDesktopViewport ? isSidebarCollapsed : !isSidebarOpen;
+  const isSidebarIconMode = isDesktopViewport ? isSidebarCollapsed : false;
 
   function expandSidebarFromIconMode() {
     if (isDesktopViewport) {

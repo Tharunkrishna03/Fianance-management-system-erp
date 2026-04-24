@@ -1,8 +1,8 @@
 DEMO_LOGIN_ACCOUNTS = [
     {
-        "label": "Tharun Admin",
-        "username": "Tharunadmin",
-        "password": "Tharun@123",
+        "label": "Tharun",
+        "username": "tharun",
+        "password": "123",
     },
     {
         "label": "Jewel Admin",

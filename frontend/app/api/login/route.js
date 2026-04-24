@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.DJANGO_API_URL ?? "http://127.0.0.1:8000";
-const AUTH_COOKIE_NAME = "jewel_finance_session";
-const USERNAME_COOKIE_NAME = "jewel_finance_username";
+import {
+  BACKEND_URL,
+  clearBackendAuthCookies,
+  syncBackendAuthCookies,
+} from "@/lib/backend-auth";
 
 export async function POST(request) {
   let payload;
@@ -35,27 +36,10 @@ export async function POST(request) {
     }));
 
     const response = NextResponse.json(data, { status: backendResponse.status });
+    clearBackendAuthCookies(response);
 
     if (backendResponse.ok && data.success) {
-      response.cookies.set({
-        name: AUTH_COOKIE_NAME,
-        value: "authenticated",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 8,
-      });
-
-      response.cookies.set({
-        name: USERNAME_COOKIE_NAME,
-        value: data.username ?? payload.username,
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 8,
-      });
+      syncBackendAuthCookies(response, backendResponse);
     }
 
     return response;

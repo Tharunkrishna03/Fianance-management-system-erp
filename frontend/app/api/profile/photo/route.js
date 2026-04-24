@@ -2,19 +2,13 @@ import { NextResponse } from "next/server";
 import {
   BACKEND_URL,
   buildAuthErrorResponse,
-  buildAuthHeaders,
+  buildBackendHeaders,
   buildUnavailableResponse,
-  getAuthenticatedUsername,
   parseBackendJson,
+  syncBackendAuthCookies,
 } from "../profile-api";
 
 export async function POST(request) {
-  const username = await getAuthenticatedUsername();
-
-  if (!username) {
-    return buildAuthErrorResponse();
-  }
-
   let incomingFormData;
 
   try {
@@ -35,16 +29,23 @@ export async function POST(request) {
     backendFormData.append(key, value);
   }
 
+  const backendHeaders = await buildBackendHeaders(request, {}, { includeCsrf: true });
+
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
+
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/api/profile/photo/`, {
       method: "POST",
-      headers: buildAuthHeaders(username),
+      headers: backendHeaders,
       body: backendFormData,
       cache: "no-store",
     });
 
     const data = await parseBackendJson(backendResponse, "Photo service returned an invalid response.");
-    return NextResponse.json(data, { status: backendResponse.status });
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
     return buildUnavailableResponse("Unable to reach the backend profile photo service.");
   }

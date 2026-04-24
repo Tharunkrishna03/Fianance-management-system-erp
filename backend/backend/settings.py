@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,16 +42,71 @@ load_env_file(BASE_DIR / ".env")
 load_env_file(BASE_DIR.parent / ".env")
 
 
+def env_bool(name, default=False):
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    normalized = value.strip().lower()
+
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+
+    return default
+
+
+def env_int(name, default):
+    value = os.getenv(name)
+
+    if value is None:
+        return default
+
+    try:
+        return int(value.strip())
+    except ValueError as error:
+        raise ImproperlyConfigured(f"{name} must be a valid integer.") from error
+
+
+def env_list(name, default=""):
+    value = os.getenv(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+RUNNING_TESTS = "test" in sys.argv
+LOCAL_DEVELOPMENT_COMMANDS = {"runserver", "shell", "migrate", "makemigrations", "createsuperuser"}
+ALLOW_LOCAL_DEFAULTS = RUNNING_TESTS or any(command in sys.argv for command in LOCAL_DEVELOPMENT_COMMANDS)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!4@ox&k+-1j(coz3vy)#lirs=0r4nsmy3_-*4o)zb1nq&984ad'
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    if ALLOW_LOCAL_DEFAULTS:
+        SECRET_KEY = "django-insecure-development-only-secret-key"
+    else:
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be set in the environment before starting the backend."
+        )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DEBUG", ALLOW_LOCAL_DEFAULTS)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "127.0.0.1,localhost,testserver")
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://127.0.0.1:3000,http://localhost:3000",
+)
+ENABLE_DEMO_ACCOUNTS = env_bool("ENABLE_DEMO_ACCOUNTS", DEBUG or RUNNING_TESTS)
+AUTHENTICATION_BACKENDS = [
+    "ledger.auth_backends.JewelFinanceModelBackend",
+]
 
 
 # Application definition
@@ -99,12 +157,25 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").strip().lower()
 
 if DB_ENGINE == "mysql":
+    required_database_env_vars = ["DB_NAME", "DB_USER", "DB_PASSWORD"]
+    missing_database_env_vars = [
+        env_var_name
+        for env_var_name in required_database_env_vars
+        if not os.getenv(env_var_name, "").strip()
+    ]
+
+    if missing_database_env_vars:
+        missing_env_var_list = ", ".join(sorted(missing_database_env_vars))
+        raise ImproperlyConfigured(
+            f"MySQL configuration requires the following environment variables: {missing_env_var_list}."
+        )
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": os.getenv("DB_NAME", "jewel_finance"),
-            "USER": os.getenv("DB_USER", "root"),
-            "PASSWORD": os.getenv("DB_PASSWORD", "Tharun@1234"),
+            "NAME": os.getenv("DB_NAME", "").strip(),
+            "USER": os.getenv("DB_USER", "").strip(),
+            "PASSWORD": os.getenv("DB_PASSWORD", "").strip(),
             "HOST": os.getenv("DB_HOST", "127.0.0.1"),
             "PORT": os.getenv("DB_PORT", "3306"),
             "OPTIONS": {
@@ -130,6 +201,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 10,
+        },
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -156,7 +230,42 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+SESSION_COOKIE_NAME = "jewel_finance_session"
+SESSION_COOKIE_AGE = env_int("SESSION_COOKIE_AGE", 60 * 60 * 8)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
+
+CSRF_COOKIE_NAME = "jewel_finance_csrf"
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", 0 if DEBUG else 31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+    not DEBUG,
+)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", not DEBUG)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = os.getenv(
+    "SECURE_REFERRER_POLICY",
+    "strict-origin-when-cross-origin",
+)
+SECURE_CROSS_ORIGIN_OPENER_POLICY = os.getenv(
+    "SECURE_CROSS_ORIGIN_OPENER_POLICY",
+    "same-origin",
+)
+X_FRAME_OPTIONS = "DENY"
+
+LOGIN_RATE_LIMIT_ATTEMPTS = env_int("LOGIN_RATE_LIMIT_ATTEMPTS", 5)
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = env_int("LOGIN_RATE_LIMIT_WINDOW_SECONDS", 300)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

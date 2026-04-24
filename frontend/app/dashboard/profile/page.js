@@ -355,7 +355,7 @@ export default function DashboardProfilePage() {
               <div className={styles.photoPreviewWrap}>
                 <div className={styles.photoPreview}>
                   {currentPhoto ? (
-                    <img alt={`${displayName || "Profile"} preview`} className={styles.photoImage} src={currentPhoto} />
+                    <img alt={`${displayName || "Profile"} preview`} className={styles.photoImage} src={currentPhoto} loading="lazy" />
                   ) : (
                     <span className={styles.photoInitial}>{currentInitial}</span>
                   )}

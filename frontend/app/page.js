@@ -214,7 +214,7 @@ export default function Home() {
                     fill
                     sizes="260px"
                     className={styles.logoImage}
-                    priority
+                    loading="lazy"
                   />
                 </div>
               </MagicCard>
@@ -226,7 +226,7 @@ export default function Home() {
         <div className={styles.formColumn}>
           <div className={styles.formCard}>
             <div className={styles.header}>
-              <p className={styles.eyebrow}>Malaiyarasi Finance</p>
+              <p className={styles.eyebrow}>Jewel Finance</p>
             </div>
 
             <form className={styles.form} onSubmit={handleSubmit}>

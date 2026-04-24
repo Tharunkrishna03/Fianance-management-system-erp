@@ -606,7 +606,7 @@ export default function CustomerTransactionPage({ params }) {
         <div className={styles.customerPanel}>
           <div className={styles.photoPanel}>
             {customer.photo_url ? (
-              <img alt={`${customer.full_name} photo`} className={styles.photoImage} src={customer.photo_url} />
+              <img alt={`${customer.full_name} photo`} className={styles.photoImage} src={customer.photo_url} loading="lazy" />
             ) : (
               <div className={styles.photoPlaceholder}>No Photo</div>
             )}

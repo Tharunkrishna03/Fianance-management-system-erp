@@ -8,7 +8,7 @@
 }
 
 .shellCollapsed {
-  --sidebar-width: 96px;
+  --sidebar-width: 0px;
 }
 
 .shellMobileExpanded {
@@ -18,7 +18,8 @@
 .mainColumn {
   margin-left: var(--sidebar-width);
   height: 100vh;
-  overflow: hidden;
+  overflow-x: visible;
+  overflow-y: hidden;
 }
 
 .sidebar {
@@ -34,7 +35,7 @@
   bottom: 0;
   width: 225px;
   overflow-y: auto;
-  background:#f2f2f2;
+  background: #f2f2f2;
 
   box-shadow: 4px 0 24px rgba(15, 23, 42, 0.03);
   z-index: 2500;
@@ -117,7 +118,7 @@
   gap: 12px;
   align-items: center;
   min-width: 0;
-  
+
   padding: 7px 8px;
   border-radius: 6px;
   font: inherit;
@@ -140,8 +141,8 @@
 }
 
 .navItem:hover {
-  color:#00329d;
-  
+  color: #00329d;
+
   background: rgb(255, 255, 255);
   box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
 }
@@ -153,7 +154,7 @@
   border-left: 1px solid rgba(0, 0, 0, 0.4);
   border-top: 1px solid rgba(0, 0, 0, 0.4);
   border-bottom: 1px solid rgba(0, 0, 0, 0.4);
- 
+
   /* no gradient */
 }
 
@@ -183,7 +184,7 @@
   place-items: center;
 
   font-weight: 800;
-  
+
 }
 
 
@@ -239,7 +240,8 @@
 }
 
 .sidebarCollapsed {
-  width: 96px;
+  transform: translateX(-100%);
+  visibility: hidden;
 }
 
 .sidebarCollapsed .navItem,
@@ -419,7 +421,7 @@
   text-align: center;
   text-decoration: none;
   color: #1f2937;
-  
+
   border: none;
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01);
@@ -1036,7 +1038,7 @@
 
 @media (max-width: 860px) {
   .shell {
-    --sidebar-width: 88px;
+    --sidebar-width: 0px;
   }
 
   .sidebarOverlay {
@@ -1061,142 +1063,27 @@
     top: 56px;
     bottom: 0;
     min-height: 0;
-    width: 88px;
-    padding: 14px 8px;
-    transform: translateX(0);
+    width: 225px;
+    padding: 14px 12px;
+    transform: translateX(-100%);
     transition:
-      width 0.24s ease,
+      transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.24s ease;
-    box-shadow: 0 18px 34px rgba(35, 25, 10, 0.2);
+    box-shadow: none;
     z-index: 2700;
   }
 
-  .sidebarCollapsed {
-    width: 88px;
-  }
+
 
   .sidebarOpen {
-    width: 225px;
+    transform: translateX(0);
+    box-shadow: 0 18px 34px rgba(35, 25, 10, 0.2);
   }
 
   .brandPanel {
     display: none;
   }
 
-  .sidebarNavWrap {
-    align-items: center;
-    gap: 12px;
-  }
-
-  .navMenuWrap {
-    width: 100%;
-    justify-items: center;
-  }
-
-  .nav {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .navItem {
-    width: 56px;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    align-content: center;
-    min-height: 56px;
-    padding: 0;
-    gap: 0;
-    text-align: center;
-    border-radius: 18px;
-  }
-
-  .navItem:hover {
-    transform: none;
-  }
-
-  .navCopy {
-    display: none;
-  }
-
-  .sidebarOpen .navCopy {
-    display: grid;
-  }
-
-  .navSubmenu {
-    padding-left: 0;
-    justify-items: center;
-  }
-
-  .navSubmenuFlyout {
-    position: static;
-    width: 100%;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-  }
-
-  .navSubmenuItem {
-    width: 56px;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0;
-    border-radius: 14px;
-  }
-
-  .navSubmenuLabel {
-    display: none;
-  }
-
-  .sidebarOpen .navMenuWrap {
-    width: 100%;
-    justify-items: stretch;
-  }
-
-  .sidebarOpen .navItem,
-  .sidebarOpen .logoutButton {
-    width: 100%;
-    grid-template-columns: 36px 1fr;
-    justify-items: stretch;
-    align-content: center;
-    min-height: 0;
-    padding: 7px 8px;
-    gap: 12px;
-    text-align: left;
-    border-radius: 6px;
-  }
-
-  .sidebarOpen .navSubmenu {
-    padding-left: 48px;
-    justify-items: stretch;
-  }
-
-  .sidebarOpen .navSubmenuItem {
-    width: 100%;
-    justify-content: flex-start;
-    min-height: 40px;
-    padding: 9px 12px;
-    border-radius: 12px;
-  }
-
-  .sidebarOpen .navSubmenuLabel {
-    display: block;
-  }
-
-  .logoutButton {
-    width: 56px;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    min-height: 56px;
-    margin-top: auto;
-    padding: 0;
-    text-align: center;
-  }
-
-  .navTag {
-    width: 40px;
-    height: 40px;
-  }
 
   .marketHeader,
   .marketTopRow,

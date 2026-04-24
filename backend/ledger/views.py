@@ -1,19 +1,26 @@
+import hashlib
 import json
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from functools import wraps
 from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
-from django.core.files.storage import default_storage
-from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
-from django.contrib.auth import password_validation
 from django.contrib.auth import get_user_model
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth import password_validation
+from django.contrib.auth import update_session_auth_hash
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.middleware.csrf import get_token
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 
 from .models import (
@@ -30,16 +37,69 @@ from .demo_accounts import DEMO_LOGIN_ACCOUNTS
 MONEY_QUANTIZER = Decimal("0.01")
 
 
-@csrf_exempt
+def build_json_error_response(message, status, *, errors=None):
+    payload = {
+        "success": False,
+        "message": message,
+    }
+
+    if errors is not None:
+        payload["errors"] = errors
+
+    return JsonResponse(payload, status=status)
+
+
+def require_authenticated_user(view_func):
+    @wraps(view_func)
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return build_json_error_response("Authentication required.", 401)
+
+        if not request.user.is_active:
+            return build_json_error_response("This account is inactive.", 403)
+
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
+
+
+def get_client_ip_address(request):
+    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR", "")
+
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+
+    return request.META.get("REMOTE_ADDR", "unknown")
+
+
+def build_login_throttle_key(request, username):
+    fingerprint = f"{get_client_ip_address(request)}:{username.casefold()}".encode("utf-8")
+    return f"login-throttle:{hashlib.sha256(fingerprint).hexdigest()}"
+
+
+def is_login_rate_limited(request, username):
+    throttle_key = build_login_throttle_key(request, username)
+    current_attempts = cache.get(throttle_key, 0)
+
+    return current_attempts >= settings.LOGIN_RATE_LIMIT_ATTEMPTS
+
+
+def register_failed_login_attempt(request, username):
+    throttle_key = build_login_throttle_key(request, username)
+    current_attempts = cache.get(throttle_key, 0) + 1
+    cache.set(throttle_key, current_attempts, timeout=settings.LOGIN_RATE_LIMIT_WINDOW_SECONDS)
+
+
+def clear_failed_login_attempts(request, username):
+    cache.delete(build_login_throttle_key(request, username))
+
+
 @require_http_methods(["GET"])
 def login_demo_accounts_view(request):
-    if not settings.DEBUG:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Demo login credentials are only available in development.",
-            },
-            status=404,
+    if not settings.ENABLE_DEMO_ACCOUNTS:
+        return build_json_error_response(
+            "Demo login credentials are only available in development.",
+            404,
         )
 
     user_model = get_user_model()
@@ -67,30 +127,25 @@ def login_demo_accounts_view(request):
     )
 
 
+@ensure_csrf_cookie
 @csrf_exempt
 @require_http_methods(["POST"])
 def login_view(request):
     try:
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Request body must be valid JSON.",
-            },
-            status=400,
-        )
+        return build_json_error_response("Request body must be valid JSON.", 400)
 
     username = str(payload.get("username", "")).strip()
     password = str(payload.get("password", ""))
 
     if not username or not password:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Username and password are required.",
-            },
-            status=400,
+        return build_json_error_response("Username and password are required.", 400)
+
+    if is_login_rate_limited(request, username):
+        return build_json_error_response(
+            "Too many login attempts. Please wait a few minutes and try again.",
+            429,
         )
 
     user = authenticate(request, username=username, password=password)
@@ -102,22 +157,16 @@ def login_view(request):
             user = authenticate(request, username=matched_user.username, password=password)
 
     if user is None:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Invalid username or password.",
-            },
-            status=401,
-        )
+        register_failed_login_attempt(request, username)
+        return build_json_error_response("Invalid username or password.", 401)
 
     if not user.is_active:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "This account is inactive.",
-            },
-            status=403,
-        )
+        return build_json_error_response("This account is inactive.", 403)
+
+    auth_login(request, user)
+    request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+    clear_failed_login_attempts(request, user.username)
+    get_token(request)
 
     return JsonResponse(
         {
@@ -129,40 +178,26 @@ def login_view(request):
     )
 
 
+@require_http_methods(["POST"])
+@require_authenticated_user
+def logout_view(request):
+    auth_logout(request)
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "Logout successful.",
+        }
+    )
+
+
 def get_authenticated_user_from_request(request):
-    username = str(request.headers.get("X-Authenticated-Username", "")).strip()
+    if not request.user.is_authenticated:
+        return None, build_json_error_response("Authentication required.", 401)
 
-    if not username:
-        return None, JsonResponse(
-            {
-                "success": False,
-                "message": "Authenticated username is required.",
-            },
-            status=401,
-        )
+    if not request.user.is_active:
+        return None, build_json_error_response("This account is inactive.", 403)
 
-    user_model = get_user_model()
-    user = user_model.objects.filter(username__iexact=username).first()
-
-    if user is None:
-        return None, JsonResponse(
-            {
-                "success": False,
-                "message": "Authenticated user was not found.",
-            },
-            status=404,
-        )
-
-    if not user.is_active:
-        return None, JsonResponse(
-            {
-                "success": False,
-                "message": "This account is inactive.",
-            },
-            status=403,
-        )
-
-    return user, None
+    return request.user, None
 
 
 def build_profile_display_name(user):
@@ -194,8 +229,8 @@ def serialize_profile(user, request):
     }
 
 
-@csrf_exempt
 @require_http_methods(["GET", "POST"])
+@require_authenticated_user
 def profile_view(request):
     user, error_response = get_authenticated_user_from_request(request)
 
@@ -213,24 +248,15 @@ def profile_view(request):
     try:
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Request body must be valid JSON.",
-            },
-            status=400,
-        )
+        return build_json_error_response("Request body must be valid JSON.", 400)
 
     display_name = str(payload.get("display_name", "")).strip()
 
     if not display_name:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Display name is required.",
-                "errors": {"display_name": "Display name is required."},
-            },
-            status=400,
+        return build_json_error_response(
+            "Display name is required.",
+            400,
+            errors={"display_name": "Display name is required."},
         )
 
     user.first_name = display_name
@@ -246,8 +272,8 @@ def profile_view(request):
     )
 
 
-@csrf_exempt
 @require_http_methods(["POST"])
+@require_authenticated_user
 def profile_password_view(request):
     user, error_response = get_authenticated_user_from_request(request)
 
@@ -257,66 +283,52 @@ def profile_password_view(request):
     try:
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Request body must be valid JSON.",
-            },
-            status=400,
-        )
+        return build_json_error_response("Request body must be valid JSON.", 400)
 
     current_password = str(payload.get("current_password", ""))
     new_password = str(payload.get("new_password", ""))
     confirm_password = str(payload.get("confirm_password", ""))
 
     if not current_password or not new_password or not confirm_password:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "All password fields are required.",
-                "errors": {
-                    "current_password": "Current password is required." if not current_password else "",
-                    "new_password": "New password is required." if not new_password else "",
-                    "confirm_password": "Please confirm the new password." if not confirm_password else "",
-                },
+        return build_json_error_response(
+            "All password fields are required.",
+            400,
+            errors={
+                "current_password": "Current password is required." if not current_password else "",
+                "new_password": "New password is required." if not new_password else "",
+                "confirm_password": "Please confirm the new password." if not confirm_password else "",
             },
-            status=400,
         )
 
     if not user.check_password(current_password):
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Current password is incorrect.",
-                "errors": {"current_password": "Current password is incorrect."},
-            },
-            status=400,
+        return build_json_error_response(
+            "Current password is incorrect.",
+            400,
+            errors={"current_password": "Current password is incorrect."},
         )
 
     if new_password != confirm_password:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "New password and confirm password must match.",
-                "errors": {"confirm_password": "New password and confirm password must match."},
-            },
-            status=400,
+        return build_json_error_response(
+            "New password and confirm password must match.",
+            400,
+            errors={"confirm_password": "New password and confirm password must match."},
         )
 
     try:
         password_validation.validate_password(new_password, user=user)
     except ValidationError as error:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": error.messages[0] if error.messages else "Password is not valid.",
-                "errors": {"new_password": error.messages[0] if error.messages else "Password is not valid."},
+        return build_json_error_response(
+            error.messages[0] if error.messages else "Password is not valid.",
+            400,
+            errors={
+                "new_password": error.messages[0] if error.messages else "Password is not valid.",
             },
-            status=400,
         )
 
     user.set_password(new_password)
     user.save(update_fields=["password"])
+    update_session_auth_hash(request, user)
+    get_token(request)
 
     return JsonResponse(
         {
@@ -326,8 +338,8 @@ def profile_password_view(request):
     )
 
 
-@csrf_exempt
 @require_http_methods(["POST"])
+@require_authenticated_user
 def profile_photo_view(request):
     user, error_response = get_authenticated_user_from_request(request)
 
@@ -337,13 +349,10 @@ def profile_photo_view(request):
     photo = request.FILES.get("photo")
 
     if photo is None:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Profile photo is required.",
-                "errors": {"photo": "Profile photo is required."},
-            },
-            status=400,
+        return build_json_error_response(
+            "Profile photo is required.",
+            400,
+            errors={"photo": "Profile photo is required."},
         )
 
     profile, _ = UserProfile.objects.get_or_create(user=user)
@@ -354,13 +363,10 @@ def profile_photo_view(request):
         profile.full_clean()
         profile.save()
     except ValidationError as error:
-        return JsonResponse(
-            {
-                "success": False,
-                "message": "Please correct the profile photo.",
-                "errors": format_validation_error(error),
-            },
-            status=400,
+        return build_json_error_response(
+            "Please correct the profile photo.",
+            400,
+            errors=format_validation_error(error),
         )
 
     if existing_photo_name and existing_photo_name != profile.photo.name:
@@ -810,8 +816,8 @@ def assign_customer_data(request, customer=None):
     return instance, None
 
 
-@csrf_exempt
 @require_http_methods(["GET", "POST"])
+@require_authenticated_user
 def workspace_settings_view(request):
     workspace_settings = WorkspaceSettings.get_solo()
 
@@ -882,8 +888,8 @@ def workspace_settings_view(request):
             "settings": serialize_workspace_settings(workspace_settings),
         }
     )
-@csrf_exempt
 @require_http_methods(["GET", "POST"])
+@require_authenticated_user
 def create_customer_view(request):
     if request.method == "GET":
         customers = [serialize_customer(customer, request) for customer in Customer.objects.all()]
@@ -924,8 +930,8 @@ def create_customer_view(request):
     )
 
 
-@csrf_exempt
 @require_http_methods(["GET", "POST", "DELETE"])
+@require_authenticated_user
 def customer_detail_view(request, customer_id):
     customer = get_object_or_404(Customer, pk=customer_id)
 

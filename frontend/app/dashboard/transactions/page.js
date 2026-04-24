@@ -332,22 +332,9 @@ export default function DashboardTransactionsPage() {
         </div>
       </div>
 
-      <div className={`${styles.statusCard} ${status === "error" ? styles.statusError : status === "success" ? styles.statusSuccess : ""}`}>
-        {message}
-      </div>
+     
 
-      {(status === "success" || customers.length > 0) && (
-        <div className={styles.summaryStrip}>
-          <div>
-            <strong>{overallCollection}</strong>
-            <span className={styles.summaryMuted}>Overall Collection Amount</span>
-          </div>
-          <div>
-            <strong>{todayCollection}</strong>
-            <span className={styles.summaryMuted}>Today&apos;s Collection Amount</span>
-          </div>
-        </div>
-      )}
+      
 
       <div className={styles.panel}>
         <div className={styles.filterBar}>

@@ -1,37 +1,38 @@
 import { NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.DJANGO_API_URL ?? "http://127.0.0.1:8000";
-
-async function parseBackendJson(response) {
-  return response.json().catch(() => ({
-    success: false,
-    message: "Customer service returned an invalid response.",
-  }));
-}
+import {
+  BACKEND_URL,
+  buildAuthErrorResponse,
+  buildBackendHeaders,
+  buildUnavailableResponse,
+  parseBackendJson,
+  syncBackendAuthCookies,
+} from "@/lib/backend-auth";
 
 async function getCustomerId(params) {
   const resolvedParams = await params;
   return resolvedParams.id;
 }
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
+  const backendHeaders = await buildBackendHeaders(request);
+
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
+
   try {
     const customerId = await getCustomerId(params);
     const backendResponse = await fetch(`${BACKEND_URL}/api/customers/${customerId}/`, {
       method: "GET",
+      headers: backendHeaders,
       cache: "no-store",
     });
 
-    const data = await parseBackendJson(backendResponse);
-    return NextResponse.json(data, { status: backendResponse.status });
+    const data = await parseBackendJson(backendResponse, "Customer service returned an invalid response.");
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Unable to reach the backend customer service.",
-      },
-      { status: 503 },
-    );
+    return buildUnavailableResponse("Unable to reach the backend customer service.");
   }
 }
 
@@ -55,25 +56,28 @@ export async function POST(request, { params }) {
     }
 
     try {
+      const backendHeaders = await buildBackendHeaders(
+        request,
+        { "Content-Type": "application/json" },
+        { includeCsrf: true },
+      );
+
+      if (!backendHeaders) {
+        return buildAuthErrorResponse();
+      }
+
       const backendResponse = await fetch(`${BACKEND_URL}/api/customers/${customerId}/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: backendHeaders,
         body: JSON.stringify(payload),
         cache: "no-store",
       });
 
-      const data = await parseBackendJson(backendResponse);
-      return NextResponse.json(data, { status: backendResponse.status });
+      const data = await parseBackendJson(backendResponse, "Customer service returned an invalid response.");
+      const response = NextResponse.json(data, { status: backendResponse.status });
+      return syncBackendAuthCookies(response, backendResponse);
     } catch {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Unable to reach the backend customer service.",
-        },
-        { status: 503 },
-      );
+      return buildUnavailableResponse("Unable to reach the backend customer service.");
     }
   }
 
@@ -97,43 +101,47 @@ export async function POST(request, { params }) {
     backendFormData.append(key, value);
   }
 
+  const backendHeaders = await buildBackendHeaders(request, {}, { includeCsrf: true });
+
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
+
   try {
     const backendResponse = await fetch(`${BACKEND_URL}/api/customers/${customerId}/`, {
       method: "POST",
+      headers: backendHeaders,
       body: backendFormData,
       cache: "no-store",
     });
 
-    const data = await parseBackendJson(backendResponse);
-    return NextResponse.json(data, { status: backendResponse.status });
+    const data = await parseBackendJson(backendResponse, "Customer service returned an invalid response.");
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Unable to reach the backend customer service.",
-      },
-      { status: 503 },
-    );
+    return buildUnavailableResponse("Unable to reach the backend customer service.");
   }
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
+  const backendHeaders = await buildBackendHeaders(request, {}, { includeCsrf: true });
+
+  if (!backendHeaders) {
+    return buildAuthErrorResponse();
+  }
+
   try {
     const customerId = await getCustomerId(params);
     const backendResponse = await fetch(`${BACKEND_URL}/api/customers/${customerId}/`, {
       method: "DELETE",
+      headers: backendHeaders,
       cache: "no-store",
     });
 
-    const data = await parseBackendJson(backendResponse);
-    return NextResponse.json(data, { status: backendResponse.status });
+    const data = await parseBackendJson(backendResponse, "Customer service returned an invalid response.");
+    const response = NextResponse.json(data, { status: backendResponse.status });
+    return syncBackendAuthCookies(response, backendResponse);
   } catch {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Unable to reach the backend customer service.",
-      },
-      { status: 503 },
-    );
+    return buildUnavailableResponse("Unable to reach the backend customer service.");
   }
 }

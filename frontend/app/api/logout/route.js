@@ -1,30 +1,27 @@
 import { NextResponse } from "next/server";
+import {
+  BACKEND_URL,
+  buildBackendHeaders,
+  clearBackendAuthCookies,
+} from "@/lib/backend-auth";
 
-const AUTH_COOKIE_NAME = "jewel_finance_session";
-const USERNAME_COOKIE_NAME = "jewel_finance_username";
-
-export async function POST() {
+export async function POST(request) {
   const response = NextResponse.json({ success: true });
+  const backendHeaders = await buildBackendHeaders(request, {}, { includeCsrf: true });
 
-  response.cookies.set({
-    name: AUTH_COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
+  if (backendHeaders) {
+    try {
+      await fetch(`${BACKEND_URL}/api/logout/`, {
+        method: "POST",
+        headers: backendHeaders,
+        cache: "no-store",
+      });
+    } catch {
+      // Clear the local session cookies even if the backend is currently unavailable.
+    }
+  }
 
-  response.cookies.set({
-    name: USERNAME_COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
+  clearBackendAuthCookies(response);
 
   return response;
 }
