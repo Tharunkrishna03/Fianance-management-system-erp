@@ -20,6 +20,12 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# --- RENDER SPECIFIC CONFIGURATION ---
+RENDER_SERVICE_ID = os.getenv("RENDER_SERVICE_ID", "srv-d7lhl257vvec73b9tj3g")
+# Your Live Site Link
+RENDER_EXTERNAL_URL = "https://fianance-management-system-erp.onrender.com"
+IS_ON_RENDER = "RENDER" in os.environ
+
 def load_env_file(file_path):
     if not file_path.exists():
         return
