@@ -48,7 +48,7 @@ const CONFETTI_PIECES = [
   { x: 82, hue: 250, delay: "0.08s", duration: "1.8s", drift: 200, rotate: "22deg", spin: -580 }
 ];
 
-export function ConfettiLayer({ show, styles }) {
+function ConfettiLayer({ show, styles }) {
   if (!show) return null;
   return (
     <div aria-hidden="true" className={styles.confettiLayer}>
@@ -71,7 +71,7 @@ export function ConfettiLayer({ show, styles }) {
   );
 }
 
-export function LoginLogo({ styles }) {
+function LoginLogo({ styles }) {
   return (
     <div className={styles.imageColumn}>
       <div className={styles.logoTilt}>
@@ -99,7 +99,7 @@ export function LoginLogo({ styles }) {
   );
 }
 
-export function LoginForm({
+function LoginForm({
   formData,
   errors,
   isSubmitting,

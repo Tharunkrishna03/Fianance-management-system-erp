@@ -194,6 +194,23 @@ def login_demo_accounts_view(request):
 
 
 @ensure_csrf_cookie
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def csrf_token_view(request):
+    raw_request = get_raw_request(request)
+    csrf_token = get_token(raw_request)
+
+    return Response(
+        {
+            "success": True,
+            "csrf_token": csrf_token,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@ensure_csrf_cookie
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])

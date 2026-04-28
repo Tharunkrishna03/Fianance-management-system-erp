@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    csrf_token_view,
     create_customer_view,
     customer_detail_view,
     login_demo_accounts_view,
@@ -15,6 +16,7 @@ from .views import (
 
 
 urlpatterns = [
+    path('csrf/', csrf_token_view, name='csrf-token'),
     path('login/demo/', login_demo_accounts_view, name='login-demo'),
     path('login/', login_view, name='login'),
     path('signup/', signup_view, name='signup'),

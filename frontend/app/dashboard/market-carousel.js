@@ -2,21 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useEffectEvent, useState } from "react";
+import { getDashboardMarketData } from "./market-data";
 import styles from "./dashboard.module.css";
 
 const AUTO_ROTATE_MS = 4500;
 const REFRESH_MS = 300000;
 
 async function requestMarketData() {
-  const response = await fetch("/api/market-prices", {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return response.json();
+  return getDashboardMarketData().catch(() => null);
 }
 
 function formatPrice(value, currencyCode) {

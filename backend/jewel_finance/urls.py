@@ -17,9 +17,21 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.conf.urls.static import static
+from django.http import JsonResponse
 from django.urls import include, path
 
+
+def root_health_view(request):
+    return JsonResponse(
+        {
+            "success": True,
+            "message": "Jewel Finance backend is running.",
+        }
+    )
+
+
 urlpatterns = [
+    path('', root_health_view, name='root-health'),
     path('admin/', admin.site.urls),
     path('api/', include('ledger.urls')),
 ]

@@ -1,4 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 function buildSearchParams(searchParams) {
   if (!searchParams) {
@@ -31,14 +34,20 @@ function buildSearchParams(searchParams) {
   return query ? `?${query}` : "";
 }
 
-export default async function CustomerTransactionRedirect({ params, searchParams }) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
+export default function CustomerTransactionRedirect() {
+  const router = useRouter();
+  const resolvedParams = useParams();
+  const resolvedSearchParams = useSearchParams();
 
-  if (!resolvedParams?.id) {
-    redirect(`/dashboard/transactions${buildSearchParams(resolvedSearchParams)}`);
-  }
+  useEffect(() => {
+    if (!resolvedParams?.id) {
+      router.replace(`/dashboard/transactions${buildSearchParams(resolvedSearchParams)}`);
+      return;
+    }
 
-  redirect(`/dashboard/transactions/${resolvedParams.id}${buildSearchParams(resolvedSearchParams)}`);
+    router.replace(`/dashboard/transactions/${resolvedParams.id}${buildSearchParams(resolvedSearchParams)}`);
+  }, [resolvedParams, resolvedSearchParams, router]);
+
+  return null;
 }
 

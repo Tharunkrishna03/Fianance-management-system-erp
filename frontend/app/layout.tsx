@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 import ToastProvider from "./toast-provider";
+import RuntimeApiBridge from "./runtime-api-bridge";
 
 export const metadata: Metadata = {
   title: "Jewel Finance Login",
@@ -28,6 +29,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <RuntimeApiBridge />
         {children}
         <ToastProvider />
       </body>

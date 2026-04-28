@@ -1,8 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { notify } from "../../../notifier";
 import BackButton from "../../back-button";
 import styles from "../transaction-detail.module.css";
@@ -216,10 +216,10 @@ function buildSchedule(entry) {
   };
 }
 
-export default function CustomerTransactionPage({ params }) {
+export default function CustomerTransactionPage() {
   const searchParams = useSearchParams();
   const isPrintMode = searchParams?.get("print") === "true";
-  const resolvedParams = use(params);
+  const resolvedParams = useParams();
   const [customer, setCustomer] = useState(null);
   const [entries, setEntries] = useState([]);
   const [editableTenureMonths, setEditableTenureMonths] = useState({});

@@ -1,5 +1,6 @@
+"use client";
+
 import dynamic from "next/dynamic";
-import { getDashboardMarketData } from "./market-data";
 import styles from "./dashboard.module.css";
 
 const MarketCarousel = dynamic(() => import("./market-carousel"), { loading: () => <div className={styles.overviewSection}>Loading Market Data...</div> });
@@ -16,7 +17,7 @@ const sectionDescriptions = {
     "Review performance summaries and operational reports prepared for the finance team.",
 };
 
-export default async function DashboardPage({ section }) {
+export default function DashboardPage({ section }) {
   if (section.slug !== "overview") {
     return (
       <div
@@ -34,12 +35,10 @@ export default async function DashboardPage({ section }) {
     );
   }
 
-  const initialData = await getDashboardMarketData();
-
   return (
     <div aria-label={section.navLabel} className={`${styles.emptyCanvas} ${styles.dashboardOverview}`}>
       <DashboardOverviewCards />
-      <MarketCarousel initialData={initialData} />
+      <MarketCarousel initialData={null} />
     </div>
   );
 }

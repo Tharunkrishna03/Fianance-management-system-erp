@@ -120,7 +120,7 @@ if not SECRET_KEY:
         )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env_bool("DEBUG", ALLOW_LOCAL_DEFAULTS)
+DEBUG = env_bool("DEBUG", False)
 
 render_external_host = urlparse(RENDER_EXTERNAL_URL).hostname if RENDER_EXTERNAL_URL else ""
 render_external_origin = ""
@@ -131,10 +131,7 @@ if RENDER_EXTERNAL_URL:
     if parsed_render_url.scheme and parsed_render_url.netloc:
         render_external_origin = f"{parsed_render_url.scheme}://{parsed_render_url.netloc}"
 
-ALLOWED_HOSTS = env_list(
-    "ALLOWED_HOSTS",
-    build_csv_default("127.0.0.1", "localhost", "testserver", render_external_host),
-)
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*")
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
     build_csv_default(
@@ -143,6 +140,18 @@ CSRF_TRUSTED_ORIGINS = env_list(
         render_external_origin,
     ),
 )
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS",
+    build_csv_default(
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        render_external_origin,
+    ),
+)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.onrender\.com$",
+]
+CORS_ALLOW_CREDENTIALS = True
 JWT_PACKAGE_AVAILABLE = find_spec("rest_framework_simplejwt") is not None
 ENABLE_JWT_AUTH = env_bool("ENABLE_JWT_AUTH", JWT_PACKAGE_AVAILABLE)
 
@@ -159,6 +168,7 @@ AUTHENTICATION_BACKENDS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -174,7 +184,9 @@ if ENABLE_JWT_AUTH:
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -283,18 +295,19 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 SESSION_COOKIE_NAME = "jewel_finance_session"
 SESSION_COOKIE_AGE = env_int("SESSION_COOKIE_AGE", 60 * 60 * 8)
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "None")
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
 
 CSRF_COOKIE_NAME = "jewel_finance_csrf"
-CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = os.getenv("CSRF_COOKIE_SAMESITE", "None")
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
