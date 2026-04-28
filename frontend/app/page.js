@@ -48,6 +48,112 @@ const CONFETTI_PIECES = [
   { x: 82, hue: 250, delay: "0.08s", duration: "1.8s", drift: 200, rotate: "22deg", spin: -580 }
 ];
 
+export function ConfettiLayer({ show, styles }) {
+  if (!show) return null;
+  return (
+    <div aria-hidden="true" className={styles.confettiLayer}>
+      {CONFETTI_PIECES.map((piece, index) => (
+        <span
+          key={`${piece.x}-${piece.hue}-${index}`}
+          className={styles.confettiPiece}
+          style={{
+            "--piece-x": piece.x,
+            "--piece-hue": piece.hue,
+            "--piece-delay": piece.delay,
+            "--piece-duration": piece.duration,
+            "--piece-drift": piece.drift,
+            "--piece-rotate": piece.rotate,
+            "--piece-spin": piece.spin,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function LoginLogo({ styles }) {
+  return (
+    <div className={styles.imageColumn}>
+      <div className={styles.logoTilt}>
+        <TiltContent>
+          <MagicCard className={styles.imageCard}>
+            <span
+              aria-hidden="true"
+              className={`${styles.borderBeam} ${styles.imageBeam}`}
+            />
+
+            <div className={styles.logoWrapper}>
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                fill
+                sizes="260px"
+                className={styles.logoImage}
+                loading="lazy"
+              />
+            </div>
+          </MagicCard>
+        </TiltContent>
+      </div>
+    </div>
+  );
+}
+
+export function LoginForm({
+  formData,
+  errors,
+  isSubmitting,
+  handleChange,
+  handleSubmit,
+  handleCancel,
+  styles,
+}) {
+  return (
+    <div className={styles.formColumn}>
+      <div className={styles.formCard}>
+        <div className={styles.header}>
+          <p className={styles.eyebrow}>Jewel Finance</p>
+        </div>
+
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <Input
+            label="Username"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            placeholder="Enter your username"
+            error={errors.username}
+            disabled={isSubmitting}
+            className={styles.inputField}
+          />
+
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter your password"
+            error={errors.password}
+            disabled={isSubmitting}
+            className={styles.inputField}
+          />
+
+          <div className={styles.actions}>
+            <SubmitButton disabled={isSubmitting} loading={isSubmitting}>
+              {isSubmitting ? "Checking..." : "Login"}
+            </SubmitButton>
+
+            <Button type="button" variant="secondary" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [formData, setFormData] = useState(initialForm);
@@ -182,95 +288,22 @@ export default function Home() {
 
   return (
     <Tilt className={styles.page} maxTilt={35} perspective={1300}>
-      {showConfetti && (
-        <div aria-hidden="true" className={styles.confettiLayer}>
-          {CONFETTI_PIECES.map((piece, index) => (
-            <span
-              key={`${piece.x}-${piece.hue}-${index}`}
-              className={styles.confettiPiece}
-              style={{
-                "--piece-x": piece.x,
-                "--piece-hue": piece.hue,
-                "--piece-delay": piece.delay,
-                "--piece-duration": piece.duration,
-                "--piece-drift": piece.drift,
-                "--piece-rotate": piece.rotate,
-                "--piece-spin": piece.spin,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      <ConfettiLayer show={showConfetti} styles={styles} />
 
       <div className={styles.loginContainer}>
         {/* IMAGE SECTION ONLY HAS TILT + BORDER BEAM */}
-        <div className={styles.imageColumn}>
-          <div className={styles.logoTilt}>
-            <TiltContent>
-              <MagicCard className={styles.imageCard}>
-                <span
-                  aria-hidden="true"
-                  className={`${styles.borderBeam} ${styles.imageBeam}`}
-                />
-
-                <div className={styles.logoWrapper}>
-                  <Image
-                    src="/logo.png"
-                    alt="Logo"
-                    fill
-                    sizes="260px"
-                    className={styles.logoImage}
-                    loading="lazy"
-                  />
-                </div>
-              </MagicCard>
-            </TiltContent>
-          </div>
-        </div>
+        <LoginLogo styles={styles} />
 
         {/* FORM SECTION (NO TILT, NO BEAM) */}
-        <div className={styles.formColumn}>
-          <div className={styles.formCard}>
-            <div className={styles.header}>
-              <p className={styles.eyebrow}>Jewel Finance</p>
-            </div>
-
-            <form className={styles.form} onSubmit={handleSubmit}>
-              <Input
-                label="Username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Enter your username"
-                error={errors.username}
-                disabled={isSubmitting}
-                className={styles.inputField}
-              />
-
-              <Input
-                label="Password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                error={errors.password}
-                disabled={isSubmitting}
-                className={styles.inputField}
-              />
-
-              <div className={styles.actions}>
-                <SubmitButton disabled={isSubmitting} loading={isSubmitting}>
-                  {isSubmitting ? "Checking..." : "Login"}
-                </SubmitButton>
-
-                <Button type="button" variant="secondary" onClick={handleCancel}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <LoginForm
+          formData={formData}
+          errors={errors}
+          isSubmitting={isSubmitting}
+          handleChange={handleChange}
+          handleSubmit={handleSubmit}
+          handleCancel={handleCancel}
+          styles={styles}
+        />
       </div>
     </Tilt>
   );
