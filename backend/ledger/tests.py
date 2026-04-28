@@ -1,6 +1,8 @@
 import shutil
 from datetime import date
+from importlib.util import find_spec
 from pathlib import Path
+from unittest import skipUnless
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -14,6 +16,7 @@ from .models import Customer, UserProfile
 
 
 TEST_MEDIA_ROOT = Path(__file__).resolve().parent.parent / "test_media"
+SIMPLEJWT_AVAILABLE = find_spec("rest_framework_simplejwt") is not None
 
 
 def calculate_age(date_of_birth):
@@ -71,26 +74,43 @@ def build_customer_payload(**overrides):
     return payload
 
 
+def create_test_user(**overrides):
+    user_model = get_user_model()
+    password = overrides.pop("password", "123")
+    username = overrides.pop("username", "tharun")
+
+    defaults = {
+        "email": overrides.pop("email", f"{username}@example.com"),
+        "first_name": overrides.pop("first_name", "Tharun"),
+        "last_name": overrides.pop("last_name", "Admin"),
+        "is_active": overrides.pop("is_active", True),
+        "is_staff": overrides.pop("is_staff", False),
+    }
+    defaults.update(overrides)
+
+    return user_model.objects.create_user(
+        username=username,
+        password=password,
+        **defaults,
+    )
+
+
 class LoginViewTests(TestCase):
     def setUp(self):
         cache.clear()
-
-    @override_settings(ENABLE_DEMO_ACCOUNTS=True)
-    def test_login_demo_accounts_are_available_in_debug(self):
-        response = self.client.get(reverse('login-demo'))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['success'], True)
-        self.assertEqual(
-            {account['username'] for account in response.json()['accounts']},
-            {'tharun', 'jeweladmin'},
+        create_test_user(username='tharun', password='123', is_staff=True)
+        create_test_user(
+            username='jeweladmin',
+            password='Jewel@123',
+            email='jeweladmin@example.com',
+            first_name='Jewel',
+            is_staff=True,
         )
 
-    @override_settings(ENABLE_DEMO_ACCOUNTS=False)
-    def test_login_demo_accounts_are_hidden_outside_debug(self):
+    def test_login_demo_accounts_endpoint_is_retired(self):
         response = self.client.get(reverse('login-demo'))
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 410)
         self.assertEqual(response.json()['success'], False)
 
     def test_login_succeeds_with_valid_credentials(self):
@@ -125,8 +145,7 @@ class LoginViewTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()['success'], False)
 
-    @override_settings(ENABLE_DEMO_ACCOUNTS=False)
-    def test_login_still_succeeds_when_demo_endpoint_is_disabled(self):
+    def test_login_still_succeeds_after_demo_endpoint_retirement(self):
         response = self.client.post(
             reverse('login'),
             data='{"username":"tharun","password":"123"}',
@@ -153,6 +172,58 @@ class LoginViewTests(TestCase):
         self.assertEqual(second_response.status_code, 429)
         self.assertEqual(second_response.json()['success'], False)
 
+    def test_signup_creates_user_with_hashed_password_and_logs_in(self):
+        response = self.client.post(
+            reverse('signup'),
+            data='{"username":"newuser","password":"StrongPass@123","confirm_password":"StrongPass@123","first_name":"New","email":"newuser@example.com"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['success'], True)
+        created_user = get_user_model().objects.get(username='newuser')
+        self.assertTrue(created_user.check_password('StrongPass@123'))
+        self.assertNotEqual(created_user.password, 'StrongPass@123')
+        self.assertEqual(str(self.client.session.get('_auth_user_id')), str(created_user.pk))
+        self.assertIn(settings.CSRF_COOKIE_NAME, response.cookies)
+
+    def test_signup_rejects_duplicate_username(self):
+        response = self.client.post(
+            reverse('signup'),
+            data='{"username":"THARUN","password":"StrongPass@123","confirm_password":"StrongPass@123"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['success'], False)
+        self.assertIn('username', response.json()['errors'])
+
+    def test_logout_clears_authenticated_session(self):
+        self.client.post(
+            reverse('login'),
+            data='{"username":"tharun","password":"123"}',
+            content_type='application/json',
+        )
+
+        response = self.client.post(reverse('logout'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], True)
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    @skipUnless(SIMPLEJWT_AVAILABLE, "SimpleJWT is not installed in the current environment.")
+    def test_login_includes_jwt_tokens_when_enabled(self):
+        response = self.client.post(
+            reverse('login'),
+            data='{"username":"tharun","password":"123"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('tokens', response.json())
+        self.assertIn('access', response.json()['tokens'])
+        self.assertIn('refresh', response.json()['tokens'])
+
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
 class ProfileViewTests(TestCase):
@@ -162,7 +233,7 @@ class ProfileViewTests(TestCase):
         shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
-        self.user = get_user_model().objects.get(username='tharun')
+        self.user = create_test_user(username='tharun', password='123', is_staff=True)
         self.client.post(
             reverse('login'),
             data='{"username":"tharun","password":"123"}',
@@ -276,6 +347,7 @@ class CustomerCreateViewTests(TestCase):
         shutil.rmtree(TEST_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
+        create_test_user(username='tharun', password='123', is_staff=True)
         self.client.post(
             reverse('login'),
             data='{"username":"tharun","password":"123"}',

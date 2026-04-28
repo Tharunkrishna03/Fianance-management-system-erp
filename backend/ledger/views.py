@@ -1,5 +1,6 @@
 import hashlib
 import json
+from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from functools import wraps
@@ -20,8 +21,22 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
+from rest_framework import status
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.exceptions import ParseError
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+try:
+    from rest_framework_simplejwt.exceptions import TokenError
+    from rest_framework_simplejwt.tokens import RefreshToken
+except ImportError:  # pragma: no cover - exercised when SimpleJWT is installed.
+    RefreshToken = None
+
+    class TokenError(Exception):
+        pass
 
 from .models import (
     Customer,
@@ -31,7 +46,7 @@ from .models import (
     WorkspaceSettings,
     render_sequence_value,
 )
-from .demo_accounts import DEMO_LOGIN_ACCOUNTS
+from .serializers import LoginSerializer, RegistrationSerializer
 
 
 MONEY_QUANTIZER = Decimal("0.01")
@@ -47,6 +62,18 @@ def build_json_error_response(message, status, *, errors=None):
         payload["errors"] = errors
 
     return JsonResponse(payload, status=status)
+
+
+def build_api_error_response(message, status_code, *, errors=None):
+    payload = {
+        "success": False,
+        "message": message,
+    }
+
+    if errors is not None:
+        payload["errors"] = errors
+
+    return Response(payload, status=status_code)
 
 
 def require_authenticated_user(view_func):
@@ -94,98 +121,240 @@ def clear_failed_login_attempts(request, username):
     cache.delete(build_login_throttle_key(request, username))
 
 
-@require_http_methods(["GET"])
+def get_raw_request(request):
+    return getattr(request, "_request", request)
+
+
+def parse_api_payload(request, invalid_message="Request body must be valid JSON."):
+    try:
+        payload = request.data
+    except ParseError:
+        return None, build_api_error_response(
+            invalid_message,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    if payload in (None, ""):
+        return {}, None
+
+    if not isinstance(payload, Mapping):
+        return None, build_api_error_response(
+            invalid_message,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    return payload, None
+
+
+def resolve_authenticated_user(raw_request, username, password):
+    user = authenticate(raw_request, username=username, password=password)
+    matched_user = get_user_model().objects.filter(username__iexact=username).first()
+
+    if user is None and matched_user is not None and matched_user.username != username:
+        user = authenticate(raw_request, username=matched_user.username, password=password)
+
+    return user, matched_user
+
+
+def build_user_summary(user):
+    display_name = user.first_name.strip() or user.username
+    return {
+        "id": user.pk,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "display_name": display_name,
+    }
+
+
+def build_token_payload(user):
+    if not settings.ENABLE_JWT_AUTH or RefreshToken is None:
+        return None
+
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+    }
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def login_demo_accounts_view(request):
-    if not settings.ENABLE_DEMO_ACCOUNTS:
-        return build_json_error_response(
-            "Demo login credentials are only available in development.",
-            404,
-        )
-
-    user_model = get_user_model()
-    available_accounts = []
-
-    for account in DEMO_LOGIN_ACCOUNTS:
-        user = user_model.objects.filter(username__iexact=account["username"], is_active=True).first()
-
-        if user is None:
-            continue
-
-        available_accounts.append(
-            {
-                "label": account["label"],
-                "username": user.username,
-                "password": account["password"],
-            }
-        )
-
-    return JsonResponse(
+    return Response(
         {
-            "success": True,
-            "accounts": available_accounts,
-        }
+            "success": False,
+            "message": "Demo login accounts are no longer available.",
+        },
+        status=status.HTTP_410_GONE,
     )
 
 
 @ensure_csrf_cookie
-@csrf_exempt
-@require_http_methods(["POST"])
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def login_view(request):
-    try:
-        payload = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return build_json_error_response("Request body must be valid JSON.", 400)
+    payload, error_response = parse_api_payload(request)
 
-    username = str(payload.get("username", "")).strip()
-    password = str(payload.get("password", ""))
+    if error_response is not None:
+        return error_response
 
-    if not username or not password:
-        return build_json_error_response("Username and password are required.", 400)
+    serializer = LoginSerializer(data=payload)
 
-    if is_login_rate_limited(request, username):
-        return build_json_error_response(
-            "Too many login attempts. Please wait a few minutes and try again.",
-            429,
+    if not serializer.is_valid():
+        return build_api_error_response(
+            "Please correct the login details.",
+            status.HTTP_400_BAD_REQUEST,
+            errors=serializer.errors,
         )
 
-    user = authenticate(request, username=username, password=password)
+    raw_request = get_raw_request(request)
+    username = serializer.validated_data["username"].strip()
+    password = serializer.validated_data["password"]
+
+    if is_login_rate_limited(raw_request, username):
+        return build_api_error_response(
+            "Too many login attempts. Please wait a few minutes and try again.",
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+    user, matched_user = resolve_authenticated_user(raw_request, username, password)
+
+    if user is None and matched_user is not None and not matched_user.is_active and matched_user.check_password(password):
+        return build_api_error_response(
+            "This account is inactive.",
+            status.HTTP_403_FORBIDDEN,
+        )
 
     if user is None:
-        user_model = get_user_model()
-        matched_user = user_model.objects.filter(username__iexact=username).first()
-        if matched_user:
-            user = authenticate(request, username=matched_user.username, password=password)
-
-    if user is None:
-        register_failed_login_attempt(request, username)
-        return build_json_error_response("Invalid username or password.", 401)
+        register_failed_login_attempt(raw_request, username)
+        return build_api_error_response(
+            "Invalid username or password.",
+            status.HTTP_401_UNAUTHORIZED,
+        )
 
     if not user.is_active:
-        return build_json_error_response("This account is inactive.", 403)
+        return build_api_error_response(
+            "This account is inactive.",
+            status.HTTP_403_FORBIDDEN,
+        )
 
-    auth_login(request, user)
-    request.session.set_expiry(settings.SESSION_COOKIE_AGE)
-    clear_failed_login_attempts(request, user.username)
-    get_token(request)
+    auth_login(raw_request, user)
+    raw_request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+    clear_failed_login_attempts(raw_request, user.username)
+    get_token(raw_request)
 
-    return JsonResponse(
-        {
-            "success": True,
-            "message": f"Login successful. Welcome, {user.username}.",
-            "username": user.username,
-            "display_name": user.first_name or user.username,
-        }
-    )
+    response_payload = {
+        "success": True,
+        "message": f"Login successful. Welcome, {user.username}.",
+        "username": user.username,
+        "display_name": user.first_name or user.username,
+        "user": build_user_summary(user),
+        "auth": {
+            "session": True,
+            "jwt": settings.ENABLE_JWT_AUTH,
+        },
+    }
+    tokens = build_token_payload(user)
+
+    if tokens is not None:
+        response_payload["tokens"] = tokens
+
+    return Response(response_payload, status=status.HTTP_200_OK)
 
 
-@require_http_methods(["POST"])
-@require_authenticated_user
+@ensure_csrf_cookie
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def signup_view(request):
+    payload, error_response = parse_api_payload(request)
+
+    if error_response is not None:
+        return error_response
+
+    serializer = RegistrationSerializer(data=payload)
+
+    if not serializer.is_valid():
+        return build_api_error_response(
+            "Please correct the signup details.",
+            status.HTTP_400_BAD_REQUEST,
+            errors=serializer.errors,
+        )
+
+    with transaction.atomic():
+        user = serializer.save()
+
+    raw_request = get_raw_request(request)
+    auth_login(raw_request, user)
+    raw_request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+    get_token(raw_request)
+
+    response_payload = {
+        "success": True,
+        "message": "Registration successful.",
+        "username": user.username,
+        "display_name": user.first_name or user.username,
+        "user": build_user_summary(user),
+        "auth": {
+            "session": True,
+            "jwt": settings.ENABLE_JWT_AUTH,
+        },
+    }
+    tokens = build_token_payload(user)
+
+    if tokens is not None:
+        response_payload["tokens"] = tokens
+
+    return Response(response_payload, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
 def logout_view(request):
-    auth_logout(request)
-    return JsonResponse(
+    payload, error_response = parse_api_payload(request)
+
+    if error_response is not None:
+        return error_response
+
+    raw_request = get_raw_request(request)
+    refresh_token = str(payload.get("refresh", "")).strip()
+
+    if not request.user.is_authenticated and not refresh_token:
+        return build_api_error_response(
+            "Authentication required.",
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    token_revoked = False
+
+    if refresh_token:
+        if not settings.ENABLE_JWT_AUTH or RefreshToken is None:
+            return build_api_error_response(
+                "JWT authentication is not enabled.",
+                status.HTTP_400_BAD_REQUEST,
+                errors={"refresh": "JWT authentication is not enabled."},
+            )
+
+        try:
+            RefreshToken(refresh_token).blacklist()
+            token_revoked = True
+        except TokenError:
+            return build_api_error_response(
+                "Refresh token is invalid or expired.",
+                status.HTTP_400_BAD_REQUEST,
+                errors={"refresh": "Refresh token is invalid or expired."},
+            )
+
+    auth_logout(raw_request)
+    return Response(
         {
             "success": True,
             "message": "Logout successful.",
+            "token_revoked": token_revoked,
         }
     )
 
