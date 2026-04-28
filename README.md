@@ -11,6 +11,7 @@ This project now uses backend-owned Django sessions for login. The Next.js app k
 5. Run `python manage.py migrate` and create a real admin user with `python manage.py createsuperuser`.
 6. Keep the backend on a private network or firewall it to the frontend/reverse proxy whenever possible.
 7. Serve customer media and document files from private storage or an authenticated proxy. Do not expose raw proof/document media from a public bucket or open file server in production.
+8. On Render, either set the service Root Directory to `backend` with start command `gunicorn jewel_finance.wsgi --bind 0.0.0.0:$PORT`, or deploy from the repo root with start command `cd backend && gunicorn jewel_finance.wsgi --bind 0.0.0.0:$PORT`.
 
 ## What was hardened
 
