@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This frontend is a statically exported [Next.js](https://nextjs.org) app for the Jewel Finance ERP UI.
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies and run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Set `NEXT_PUBLIC_DJANGO_API_URL` in `frontend/.env.local` so browser API calls target the deployed Django backend.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Static export
+
+The frontend is configured for static export in [next.config.js](/E:/jewel_finanace/frontend/next.config.js:1):
+
+```bash
+npm run build
+```
+
+This generates the deployable static site in `frontend/out`.
+
+## Render deployment
+
+Deploy this folder to Render as a Static Site with:
+
+- Root Directory: `frontend`
+- Build Command: `npm install && npm run build`
+- Publish Directory: `out`
+- Environment Variable: `NEXT_PUBLIC_DJANGO_API_URL=https://fianance-management-system-erp.onrender.com`
+- Backend follow-up: add the deployed frontend origin to Django's `CSRF_TRUSTED_ORIGINS` so login and other authenticated POST requests succeed from the Render static-site domain.
+
+The repository root also includes [render.yaml](/E:/jewel_finanace/render.yaml:1) with the same settings for Blueprint-based setup.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about Next.js static export, take a look at:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Static Exports](https://nextjs.org/docs/app/building-your-application/deploying/static-exports) - deployment details for `output: "export"`.

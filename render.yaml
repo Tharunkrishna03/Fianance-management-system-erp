@@ -1,0 +1,10 @@
+services:
+  - type: web
+    runtime: static
+    name: jewel-finance-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./frontend/out
+    envVars:
+      - key: NEXT_PUBLIC_DJANGO_API_URL
+        value: https://fianance-management-system-erp.onrender.com
