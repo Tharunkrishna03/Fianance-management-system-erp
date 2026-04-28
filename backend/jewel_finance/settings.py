@@ -15,6 +15,7 @@ import sys
 from datetime import timedelta
 from importlib.util import find_spec
 from pathlib import Path
+from urllib.parse import urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -25,7 +26,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --- RENDER SPECIFIC CONFIGURATION ---
 RENDER_SERVICE_ID = os.getenv("RENDER_SERVICE_ID", "srv-d7lhl257vvec73b9tj3g")
 # Your Live Site Link
-RENDER_EXTERNAL_URL = "https://fianance-management-system-erp.onrender.com"
+RENDER_EXTERNAL_URL = os.getenv(
+    "RENDER_EXTERNAL_URL",
+    "https://fianance-management-system-erp.onrender.com",
+).strip()
 IS_ON_RENDER = "RENDER" in os.environ
 
 def load_env_file(file_path):
@@ -84,6 +88,18 @@ def env_list(name, default=""):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def build_csv_default(*values):
+    unique_values = []
+
+    for value in values:
+        normalized_value = str(value or "").strip()
+
+        if normalized_value and normalized_value not in unique_values:
+            unique_values.append(normalized_value)
+
+    return ",".join(unique_values)
+
+
 RUNNING_TESTS = "test" in sys.argv
 LOCAL_DEVELOPMENT_COMMANDS = {"runserver", "shell", "migrate", "makemigrations", "createsuperuser"}
 ALLOW_LOCAL_DEFAULTS = RUNNING_TESTS or any(command in sys.argv for command in LOCAL_DEVELOPMENT_COMMANDS)
@@ -93,7 +109,7 @@ ALLOW_LOCAL_DEFAULTS = RUNNING_TESTS or any(command in sys.argv for command in L
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("Tharun")
 
 if not SECRET_KEY:
     if ALLOW_LOCAL_DEFAULTS:
@@ -106,10 +122,26 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DEBUG", ALLOW_LOCAL_DEFAULTS)
 
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "127.0.0.1,localhost,testserver")
+render_external_host = urlparse(RENDER_EXTERNAL_URL).hostname if RENDER_EXTERNAL_URL else ""
+render_external_origin = ""
+
+if RENDER_EXTERNAL_URL:
+    parsed_render_url = urlparse(RENDER_EXTERNAL_URL)
+
+    if parsed_render_url.scheme and parsed_render_url.netloc:
+        render_external_origin = f"{parsed_render_url.scheme}://{parsed_render_url.netloc}"
+
+ALLOWED_HOSTS = env_list(
+    "ALLOWED_HOSTS",
+    build_csv_default("127.0.0.1", "localhost", "testserver", render_external_host),
+)
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
-    "http://127.0.0.1:3000,http://localhost:3000",
+    build_csv_default(
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        render_external_origin,
+    ),
 )
 JWT_PACKAGE_AVAILABLE = find_spec("rest_framework_simplejwt") is not None
 ENABLE_JWT_AUTH = env_bool("ENABLE_JWT_AUTH", JWT_PACKAGE_AVAILABLE)
