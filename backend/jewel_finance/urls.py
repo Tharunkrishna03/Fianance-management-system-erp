@@ -17,23 +17,16 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.conf.urls.static import static
-from django.http import JsonResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
 
-
-def root_health_view(request):
-    return JsonResponse(
-        {
-            "success": True,
-            "message": "Jewel Finance backend is running.",
-        }
-    )
+from .frontend_views import serve_frontend
 
 
 urlpatterns = [
-    path('', root_health_view, name='root-health'),
     path('admin/', admin.site.urls),
     path('api/', include('ledger.urls')),
+    path('', serve_frontend, name='frontend-root'),
+    re_path(r'^(?P<path>(?!admin/|api/|media/).+)$', serve_frontend, name='frontend-route'),
 ]
 
 if settings.DEBUG:
